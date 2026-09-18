@@ -57,7 +57,7 @@ class CategoryController extends Controller
 
         return response()->json([
             'message' => 'Category updated successfully',
-            'data' => $category
+            'updated_category' => $category
         ], Response::HTTP_OK);
     }
 
@@ -69,7 +69,7 @@ class CategoryController extends Controller
         $category->delete();
         return response()->json([
             'message' => 'Category deleted successfully!',
-            'deleted_data' => $category,
+            'deleted_category' => $category,
         ], Response::HTTP_OK);
     }
 }
