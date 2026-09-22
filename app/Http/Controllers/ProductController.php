@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use http\Env\Response;
 use Illuminate\Http\Request;
@@ -14,7 +15,8 @@ class ProductController extends Controller
      */
     public function index()
     {
-        return Product::with('category')->get();
+        $product = Product::with('category')->paginate(15);
+        return ProductResource::collection($product);
     }
 
     /**
@@ -24,6 +26,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'required|string',
             'price' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
         ]);
@@ -50,6 +53,7 @@ class ProductController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'required|string',
             'price' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
         ]);
