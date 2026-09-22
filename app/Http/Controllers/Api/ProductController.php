@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
-use http\Env\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -13,9 +13,34 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $product = Product::with('category')->paginate(15);
+        $product = Product::with
+        ('category')->when($request->query('search'), function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}")->orWhere('description', 'like', "%{$search}");
+            });
+        }) // 1. search by name or description
+        ->when($request->query('category_id'), function ($query, $category_id) {
+            $query->where('category_id', $category_id);
+        }) // 2. search by category ID
+        ->when($request->query('min_price'), function ($query, $minPrice) {
+            $query->where('price', '>=', $minPrice * 100);
+        })
+            ->when($request->query('max_price'), function ($query, $maxPrice) {
+                $query->where('price', '<=', $maxPrice * 100);
+            }) // 3. Filter by price range (converting input dollars to cents)
+            ->when($request->query('sort'), function ($query, $sort) {
+                match ($sort) {
+                    'price_asc' => $query->orderBy('price', 'asc'),
+                    'price_dsc' => $query->orderBy('price', 'dsc'),
+                    'oldest' => $query->orderBy('created_at', 'asc'),
+                    default => $query->latest(),
+                };
+            }, function ($query) {
+                $query->latest(); // Default sort when 'sort' parameter is removed
+            })
+            ->paginate(15)->withQueryString(); // Keeps query parameters attached to page 2, 3, etc.
         return ProductResource::collection($product);
     }
 
