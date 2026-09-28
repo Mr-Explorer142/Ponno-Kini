@@ -18,6 +18,8 @@ class ProductResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'slug' => $this->slug,
+            'description' => $this->description,
+            'image_url' => $this->image_path ? asset('storage/' . $this->image_path) : null,
             'price' => $this->price / 100,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'created_at' => $this->created_at->toDateTimeString(),

@@ -29,7 +29,8 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
     // Product
     Route::post('/products', [ProductController::class, 'store']);
-    Route::put('/products/{product}', [ProductController::class, 'update']);
+    // using post just for image
+    Route::post('/products/{product}', [ProductController::class, 'update']);
     Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 
     // Catalog
