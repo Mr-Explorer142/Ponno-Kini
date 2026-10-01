@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\OrderController;
 use Illuminate\Support\Facades\Route;
 
 // public auth
@@ -25,16 +26,26 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Admin Catalog management (Create, Update & Delete of Products and Categories)
+    // Order Endpoints for authenticated customers
+    Route::get('/orders', [OrderController::class, 'index']);
+    Route::post('/orders', [OrderController::class, 'store']);
+    Route::get('/orders/{order}', [OrderController::class, 'show']);
 
-    // Product
-    Route::post('/products', [ProductController::class, 'store']);
-    // using post just for image
-    Route::post('/products/{product}', [ProductController::class, 'update']);
-    Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+    // Admin Catalog management (Create, Update & Delete of Products, Categories & Orders)
+    Route::middleware('role:admin')->group(function () {
+        // Product
+        Route::post('/products', [ProductController::class, 'store']);
+        // using post just for image
+        Route::post('/products/{product}', [ProductController::class, 'update']);
+        Route::delete('/products/{product}', [ProductController::class, 'destroy']);
 
-    // Catalog
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{category}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+        // Catalog
+        Route::post('/categories', [CategoryController::class, 'store']);
+        Route::put('/categories/{category}', [CategoryController::class, 'update']);
+        Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+
+        // Orders
+        Route::patch('/orders/{order}/status', [\App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
+    });
+
 });
