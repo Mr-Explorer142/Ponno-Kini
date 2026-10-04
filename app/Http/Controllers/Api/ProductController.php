@@ -30,10 +30,10 @@ class ProductController extends Controller
             })
             // 3. Filter by price range (converting input dollars to cents)
             ->when($request->query('min_price'), function ($query, $minPrice) {
-                $query->where('price', '>=', $minPrice * 100);
+                $query->where('price', '>=', $minPrice);
             })
             ->when($request->query('max_price'), function ($query, $maxPrice) {
-                $query->where('price', '<=', $maxPrice * 100);
+                $query->where('price', '<=', $maxPrice);
             })
             // 4. Sort results
             ->when($request->query('sort'), function ($query, $sort) {

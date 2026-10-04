@@ -18,7 +18,6 @@ return new class extends Migration {
             $table->string('status')->default('pending'); // pending, processing, completed, cancelled, failed
             $table->string('payment_status')->default('pending'); // pending, paid, failed, refunded
             $table->json('shipping_address');
-            $table->string('transaction_id')->nullable()->unique(); // For SSLCommerz
             $table->timestamps();
         });
     }

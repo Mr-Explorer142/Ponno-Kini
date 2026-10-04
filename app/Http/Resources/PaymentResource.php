@@ -5,7 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ProductResource extends JsonResource
+class PaymentResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,12 +16,12 @@ class ProductResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->name,
-            'slug' => $this->slug,
-            'description' => $this->description,
-            'image_url' => $this->image_path ? asset('storage/' . $this->image_path) : null,
-            'price' => $this->price,
-            'category' => new CategoryResource($this->whenLoaded('category')),
+            'transaction_id' => $this->transaction_id,
+            'gateway' => $this->gateway,
+            'amount' => $this->amount,
+            'currency' => $this->currency,
+            'status' => $this->status,
+            'card_type' => $this->card_type,
             'created_at' => $this->created_at->toDateTimeString(),
         ];
     }

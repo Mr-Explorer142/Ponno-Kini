@@ -17,12 +17,13 @@ class OrderResource extends JsonResource
         return [
             'id' => $this->id,
             'order_number' => $this->order_number,
-            'total_amount' => $this->total_amount / 100,
+            'total_amount' => $this->total_amount,
             'status' => $this->status,
             'payment_status' => $this->payment_status,
             'shipping_address' => $this->shipping_address,
-            'transaction_id' => $this->transaction_id,
             'items' => OrderItemResource::collection($this->whenLoaded('items')),
+            'payments' => PaymentResource::collection($this->whenLoaded('payments')),
+            'latest_payment' => new PaymentResource($this->whenLoaded('latestPayment')),
             'created_at' => $this->created_at->toDateTimeString(),
         ];
     }

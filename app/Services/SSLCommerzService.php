@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\Order;
@@ -13,9 +14,9 @@ class SSLCommerzService
 
     public function __construct()
     {
-        $this->storeId       = config('sslcommerz.store_id');
+        $this->storeId = config('sslcommerz.store_id');
         $this->storePassword = config('sslcommerz.store_password');
-        $this->apiDomain     = config('sslcommerz.api_domain');
+        $this->apiDomain = config('sslcommerz.api_domain');
     }
 
     /**
@@ -26,29 +27,29 @@ class SSLCommerzService
         $shipping = $order->shipping_address;
 
         $postData = [
-            'store_id'         => $this->storeId,
-            'store_passwd'     => $this->storePassword,
-            'total_amount'     => $order->total_amount / 100, // Converting cents to BDT
-            'currency'         => 'BDT',
-            'tran_id'          => $order->order_number,
+            'store_id' => $this->storeId,
+            'store_passwd' => $this->storePassword,
+            'total_amount' => $order->total_amount, // Converting cents to BDT
+            'currency' => 'BDT',
+            'tran_id' => $order->order_number,
             'product_category' => 'General',
-            'success_url'      => url('/api/payment/success'),
-            'fail_url'         => url('/api/payment/fail'),
-            'cancel_url'       => url('/api/payment/cancel'),
-            'ipn_url'          => url('/api/payment/ipn'),
+            'success_url' => url('/api/payment/success'),
+            'fail_url' => url('/api/payment/fail'),
+            'cancel_url' => url('/api/payment/cancel'),
+            'ipn_url' => url('/api/payment/ipn'),
 
             // Customer Details
-            'cus_name'     => $order->user->name,
-            'cus_email'    => $order->user->email,
-            'cus_add1'     => $shipping['street'] ?? 'Dhaka',
-            'cus_city'     => $shipping['city'] ?? 'Dhaka',
+            'cus_name' => $order->user->name,
+            'cus_email' => $order->user->email,
+            'cus_add1' => $shipping['street'] ?? 'Dhaka',
+            'cus_city' => $shipping['city'] ?? 'Dhaka',
             'cus_postcode' => $shipping['postal_code'] ?? '1000',
-            'cus_country'  => $shipping['country'] ?? 'Bangladesh',
-            'cus_phone'    => $shipping['phone'] ?? '01700000000',
+            'cus_country' => $shipping['country'] ?? 'Bangladesh',
+            'cus_phone' => $shipping['phone'] ?? '01700000000',
 
             // Shipment Parameters
             'shipping_method' => 'NO',
-            'product_name'    => 'Order #' . $order->order_number,
+            'product_name' => 'Order #' . $order->order_number,
         ];
 
         $response = Http::asForm()->post("{$this->apiDomain}/gwprocess/v4/api.php", $postData);
@@ -67,10 +68,10 @@ class SSLCommerzService
     public function validatePayment(string $valId): bool
     {
         $url = "{$this->apiDomain}/validator/api/validationserverAPI.php?" . http_build_query([
-                'val_id'       => $valId,
-                'store_id'     => $this->storeId,
+                'val_id' => $valId,
+                'store_id' => $this->storeId,
                 'store_passwd' => $this->storePassword,
-                'format'       => 'json',
+                'format' => 'json',
             ]);
 
         $response = Http::get($url);

@@ -1,12 +1,13 @@
 <?php
+
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Services\SSLCommerzService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class PaymentController extends Controller
 {
@@ -17,7 +18,7 @@ class PaymentController extends Controller
         $this->sslCommerz = $sslCommerz;
     }
 
-    // 1. Initiate Payment Link for Order 💳
+    // 1. Initiate Payment
     public function initiate(Request $request, Order $order)
     {
         if ($order->user_id !== $request->user()->id) {
@@ -31,56 +32,83 @@ class PaymentController extends Controller
         $result = $this->sslCommerz->initiatePayment($order);
 
         if (isset($result['status']) && $result['status'] === 'SUCCESS') {
+            // Create pending record in payments table
+            Payment::create([
+                'order_id' => $order->id,
+                'transaction_id' => $order->order_number,
+                'gateway' => 'sslcommerz',
+                'amount' => $order->total_amount,
+                'currency' => 'BDT',
+                'status' => 'pending',
+                'raw_response' => $result,
+            ]);
+
             return response()->json([
                 'payment_url' => $result['GatewayPageURL'],
-                'status'      => 'pending',
+                'status' => 'pending',
             ]);
         }
 
         return response()->json([
             'message' => 'Failed to generate SSLCommerz payment session.',
-            'error'   => $result['failedreason'] ?? 'Gateway connection error',
+            'error' => $result['failedreason'] ?? 'Gateway connection error',
         ], 500);
     }
 
-    // 2. Success Redirect Callback 🟢
+    // 2. Success Callback
     public function success(Request $request)
     {
         $tranId = $request->input('tran_id');
-        $valId  = $request->input('val_id');
+        $valId = $request->input('val_id');
+        $cardType = $request->input('card_type');
 
         $order = Order::where('order_number', $tranId)->firstOrFail();
+        $payment = Payment::where('transaction_id', $tranId)->latest()->first();
 
-        if ($order->payment_status === 'paid') {
-            return response()->json(['message' => 'Order payment already confirmed.']);
-        }
+        if ($this->sslCommerz->validatePayment($valId)) {
+            DB::transaction(function () use ($order, $payment, $valId, $cardType, $request) {
+                // Update Payment Log
+                if ($payment) {
+                    $payment->update([
+                        'status' => 'paid',
+                        'val_id' => $valId,
+                        'card_type' => $cardType,
+                        'raw_response' => $request->all(),
+                    ]);
+                }
 
-        // Verify payment authenticity with SSLCommerz server
-        if ($valId && $this->sslCommerz->validatePayment($valId)) {
-            $order->update([
-                'payment_status' => 'paid',
-                'status'         => 'processing',
-                'transaction_id' => $tranId,
-            ]);
+                // Update Master Order
+                $order->update([
+                    'payment_status' => 'paid',
+                    'status' => 'processing',
+                ]);
+            });
 
             return response()->json([
-                'message'      => 'Payment successful!',
+                'message' => 'Payment successful!',
                 'order_number' => $order->order_number,
-                'status'       => 'paid',
+                'status' => 'paid',
             ]);
         }
 
+        if ($payment) {
+            $payment->update(['status' => 'failed', 'raw_response' => $request->all()]);
+        }
         $order->update(['payment_status' => 'failed', 'status' => 'failed']);
 
         return response()->json(['message' => 'Payment validation failed.'], 400);
     }
 
-    // 3. Fail Callback 🔴
+    // 3. Fail Callback
     public function fail(Request $request)
     {
         $tranId = $request->input('tran_id');
-        $order  = Order::where('order_number', $tranId)->first();
+        $order = Order::where('order_number', $tranId)->first();
+        $payment = Payment::where('transaction_id', $tranId)->latest()->first();
 
+        if ($payment) {
+            $payment->update(['status' => 'failed', 'raw_response' => $request->all()]);
+        }
         if ($order) {
             $order->update(['payment_status' => 'failed', 'status' => 'failed']);
         }
@@ -88,12 +116,16 @@ class PaymentController extends Controller
         return response()->json(['message' => 'Payment failed.'], 400);
     }
 
-    // 4. Cancel Callback 🟡
+    // 4. Cancel Callback
     public function cancel(Request $request)
     {
         $tranId = $request->input('tran_id');
-        $order  = Order::where('order_number', $tranId)->first();
+        $order = Order::where('order_number', $tranId)->first();
+        $payment = Payment::where('transaction_id', $tranId)->latest()->first();
 
+        if ($payment) {
+            $payment->update(['status' => 'cancelled', 'raw_response' => $request->all()]);
+        }
         if ($order) {
             $order->update(['payment_status' => 'cancelled', 'status' => 'cancelled']);
         }
@@ -101,16 +133,16 @@ class PaymentController extends Controller
         return response()->json(['message' => 'Payment cancelled by user.']);
     }
 
-    // 5. IPN (Instant Payment Notification) Webhook 🔔
+    // 5. IPN Webhook
     public function ipn(Request $request)
     {
         $tranId = $request->input('tran_id');
-        $valId  = $request->input('val_id');
+        $valId = $request->input('val_id');
         $status = $request->input('status');
-
-        Log::info('SSLCommerz IPN Received', $request->all());
+        $cardType = $request->input('card_type');
 
         $order = Order::where('order_number', $tranId)->first();
+        $payment = Payment::where('transaction_id', $tranId)->latest()->first();
 
         if (!$order) {
             return response()->json(['message' => 'Order not found.'], 404);
@@ -121,16 +153,24 @@ class PaymentController extends Controller
         }
 
         if ($status === 'VALID' && $valId && $this->sslCommerz->validatePayment($valId)) {
-            $order->update([
-                'payment_status' => 'paid',
-                'status'         => 'processing',
-                'transaction_id' => $tranId,
-            ]);
+            DB::transaction(function () use ($order, $payment, $valId, $cardType, $request) {
+                if ($payment) {
+                    $payment->update([
+                        'status' => 'paid',
+                        'val_id' => $valId,
+                        'card_type' => $cardType,
+                        'raw_response' => $request->all(),
+                    ]);
+                }
+
+                $order->update([
+                    'payment_status' => 'paid',
+                    'status' => 'processing',
+                ]);
+            });
 
             return response()->json(['message' => 'IPN Processed Successfully']);
         }
-
-        $order->update(['payment_status' => 'failed', 'status' => 'failed']);
 
         return response()->json(['message' => 'IPN Validation Failed'], 400);
     }
