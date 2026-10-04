@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('throttle:auth-strict')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+
+    // Forgot / Reset Password Endpoints
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+    // Signed Email Verification Endpoint
+    Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+        ->name('verification.verify');
 });
 
 // public browsing
@@ -27,35 +35,48 @@ Route::post('/payment/fail', [PaymentController::class, 'fail']);
 Route::post('/payment/cancel', [PaymentController::class, 'cancel']);
 Route::post('/payment/ipn', [PaymentController::class, 'ipn']);
 
-// Protected routes
+// Protected & Authenticated routes
 Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
+
+    // Email Verification Notification
+    Route::post(
+        '/email/verification-notification',
+        [AuthController::class, 'resendVerificationNotification']
+    );
+
     // Auth endpoints
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
-    // Order Endpoints for authenticated customers
-    Route::get('/orders', [OrderController::class, 'index']);
-    Route::post('/orders', [OrderController::class, 'store']);
-    Route::get('/orders/{order}', [OrderController::class, 'show']);
+    // verified email routes
+    Route::middleware('verified')->group(function () {
 
-    // Payment initiation
-    Route::post('/orders/{order}/pay', [PaymentController::class, 'initiate']);
+        // Customer Orders
+        Route::get('/orders', [OrderController::class, 'index']);
+        Route::post('/orders', [OrderController::class, 'store']);
+        Route::get('/orders/{order}', [OrderController::class, 'show']);
 
-    // Admin Catalog management (Create, Update & Delete of Products, Categories & Orders)
-    Route::middleware('role:admin')->group(function () {
-        // Product
-        Route::post('/products', [ProductController::class, 'store']);
-        // using post just for image
-        Route::post('/products/{product}', [ProductController::class, 'update']);
-        Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+        // Payment
+        Route::post('/orders/{order}/pay', [PaymentController::class, 'initiate']);
 
-        // Catalog
-        Route::post('/categories', [CategoryController::class, 'store']);
-        Route::put('/categories/{category}', [CategoryController::class, 'update']);
-        Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+        // Admin Catalog management
+        Route::middleware('role:admin')->group(function () {
 
-        // Orders
-        Route::patch('/orders/{order}/status', [\App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
+            // Products
+            Route::post('/products', [ProductController::class, 'store']);
+            Route::post('/products/{product}', [ProductController::class, 'update']);
+            Route::delete('/products/{product}', [ProductController::class, 'destroy']);
+
+            // Categories
+            Route::post('/categories', [CategoryController::class, 'store']);
+            Route::put('/categories/{category}', [CategoryController::class, 'update']);
+            Route::delete('/categories/{category}', [CategoryController::class, 'destroy']);
+
+            // Orders
+            Route::patch(
+                '/orders/{order}/status',
+                [OrderController::class, 'updateStatus']
+            );
+        });
     });
-
 });
