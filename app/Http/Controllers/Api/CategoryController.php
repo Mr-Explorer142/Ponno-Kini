@@ -7,6 +7,7 @@ use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class CategoryController extends Controller
@@ -16,7 +17,11 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        return CategoryResource::collection(Category::all());
+        $categories = Cache::remember('categories.all', 86400, function () {
+            return Category::all();
+        });
+
+        return CategoryResource::collection($categories);
     }
 
     /**
@@ -32,14 +37,20 @@ class CategoryController extends Controller
 
         $category = Category::create($validated);
 
+        $this->clearCategoryCache();
+
         return response()->json($category, 201);
     }
 
     /**
      * Display the specified resource.
      */
-    public function show(Category $category)
+    public function show($id)
     {
+        $category = Cache::remember("categories.show.{$id}", 86400, function () use ($id) {
+            return Category::findOrFail($id);
+        });
+
         return new CategoryResource($category);
     }
 
@@ -56,6 +67,8 @@ class CategoryController extends Controller
 
         $category->update($validated);
 
+        $this->clearCategoryCache($category->id);
+
         return response()->json([
             'message' => 'Category updated successfully',
             'updated_category' => $category
@@ -68,9 +81,23 @@ class CategoryController extends Controller
     public function destroy(Category $category)
     {
         $category->delete();
+
+        $this->clearCategoryCache($category->id);
+
         return response()->json([
             'message' => 'Category deleted successfully!',
             'deleted_category' => $category,
         ], Response::HTTP_OK);
+    }
+
+    /**
+     * Cache Invalidation Helper
+     */
+    private function clearCategoryCache(?int $id = null): void
+    {
+        Cache::forget('categories.all');
+        if ($id) {
+            Cache::forget("categories.show.{$id}");
+        }
     }
 }
