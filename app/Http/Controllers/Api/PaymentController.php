@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Notifications\PaymentSuccessfulNotification;
 use App\Services\SSLCommerzService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +83,8 @@ class PaymentController extends Controller
                     'payment_status' => 'paid',
                     'status' => 'processing',
                 ]);
+
+                $order->user->notify(new PaymentSuccessfulNotification($order));
             });
 
             return response()->json([
@@ -167,6 +170,8 @@ class PaymentController extends Controller
                     'payment_status' => 'paid',
                     'status' => 'processing',
                 ]);
+
+                $order->user->notify(new PaymentSuccessfulNotification($order));
             });
 
             return response()->json(['message' => 'IPN Processed Successfully']);
