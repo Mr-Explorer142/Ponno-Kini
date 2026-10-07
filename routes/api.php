@@ -56,6 +56,9 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
         Route::post('/orders', [OrderController::class, 'store']);
         Route::get('/orders/{order}', [OrderController::class, 'show']);
 
+        // Download invoice
+        Route::get('/orders/{order}/invoice', [OrderController::class, 'downloadInvoice']);
+
         // Payment
         Route::post('/orders/{order}/pay', [PaymentController::class, 'initiate']);
 

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -103,6 +104,22 @@ class OrderController extends Controller
             'message' => 'Order status updated successfully!',
             'order' => new OrderResource($order),
         ]);
+    }
+
+
+    public function downloadInvoice(Request $request, Order $order)
+    {
+        if ($request->user()->cannot('view', $order) && !$request->user()->hasRole('admin') && $order->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized access to invoice.'], 403);
+        }
+
+        $order->load(['user', 'items.product']);
+
+        $pdf = Pdf::setOptions([
+            'isHtml5ParserEnabled' => true,
+        ])->loadView('invoices.order', ['order' => $order]);
+
+        return $pdf->download("Invoice-{$order->order_number}.pdf");
     }
 
 }
