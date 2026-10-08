@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\Admin\AiController;
+use App\Http\Controllers\Api\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
 // public auth
@@ -27,6 +29,9 @@ Route::middleware('throttle:api-general')->group(function () {
     Route::get('/product/{product}', [ProductController::class, 'show']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
+
+    // Product Recommendations
+    Route::post('/cart/recommendations', [RecommendationController::class, 'getCartRecommendations']);
 });
 
 // SSLCommerz Gate Callbacks & IPN Webhook (Public POST Endpoints)
@@ -80,6 +85,9 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
                 '/orders/{order}/status',
                 [OrderController::class, 'updateStatus']
             );
+
+            // SEO type Product description generator using GEMINI AI API
+            Route::post('/ai/generate-description', [AiController::class, 'generateProductDescription']);
         });
     });
 });

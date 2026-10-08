@@ -28,12 +28,15 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'System Administrator',
                 'password' => 'Admin@123456',
+                'email_verified_at' => now(),
             ],
         );
 
         $admin->assignRole($adminRole);
 
         // 3. Seeding data
-        Category::factory(5)->has(Product::factory()->count(10))->create();
+        Category::factory()->count(5)->create()->each(function ($category) {
+            Product::factory()->count(10)->forCategory($category)->create();
+        });
     }
 }
