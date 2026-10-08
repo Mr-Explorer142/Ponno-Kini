@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -19,7 +20,7 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'description' => $this->description,
-            'image_url' => $this->image_path ? asset('storage/' . $this->image_path) : null,
+            'image_url' => ImageService::url($this->image_path),
             'price' => $this->price,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'created_at' => $this->created_at->toDateTimeString(),

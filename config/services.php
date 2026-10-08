@@ -40,4 +40,10 @@ return [
         'model' => env('GEMINI_MODEL', 'gemini-3.8-flash'),
     ],
 
+    'cloudinary' => [
+        'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+        'api_key' => env('CLOUDINARY_API_KEY'),
+        'api_secret' => env('CLOUDINARY_API_SECRET'),
+    ],
+
 ];

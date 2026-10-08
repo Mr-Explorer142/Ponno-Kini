@@ -5,21 +5,24 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    private const LIST_VERSION_KEY = 'products.list.version';
 
     public function index(Request $request)
     {
         $startTime = microtime(true);
 
-        // 1. Generate unique cache key per query string
+        // 1. Unique cache key per query string, tied to the current list version.
+        //    Bumping the version (see clearProductCache) invalidates every cached list at once.
         $queryString = http_build_query($request->query());
-        $cacheKey = 'products.list.' . md5($queryString);
+        $cacheKey = 'products.list.v' . $this->listVersion() . '.' . md5($queryString);
 
         $isCacheHit = Cache::has($cacheKey);
 
@@ -64,7 +67,7 @@ class ProductController extends Controller
             ];
         });
 
-        // 3. Fast Primary Key lookup (WHERE id IN (...)) for the 15 items + eager load category
+        // 3. Fast primary-key lookup for the page's items + eager load category
         $ids = $cached['ids'];
         $products = Product::with('category')
             ->whereIn('id', $ids)
@@ -74,8 +77,8 @@ class ProductController extends Controller
             })
             ->values();
 
-        // 4. Reconstruct Paginator
-        $paginated = new \Illuminate\Pagination\LengthAwarePaginator(
+        // 4. Reconstruct the paginator
+        $paginated = new LengthAwarePaginator(
             $products,
             $cached['total'],
             $cached['per_page'],
@@ -98,7 +101,7 @@ class ProductController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request, ImageService $images)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
@@ -110,9 +113,9 @@ class ProductController extends Controller
 
         $validated['slug'] = Str::slug($validated['name']);
 
+        // Upload to Cloudinary; image_path stores the Cloudinary public_id
         if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('products', 'public');
-            $validated['image_path'] = $path;
+            $validated['image_path'] = $images->upload($request->file('image'));
         }
 
         // Unset the UploadedFile object so Eloquent doesn't try to persist it
@@ -140,35 +143,36 @@ class ProductController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Product $product)
+    public function update(Request $request, Product $product, ImageService $images)
     {
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|integer|min:0', // BDT, whole units
             'category_id' => 'sometimes|required|exists:categories,id',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240', // matched to store()
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
         ]);
 
         if (isset($validated['name'])) {
             $validated['slug'] = Str::slug($validated['name']);
         }
 
-        if ($request->hasFile('image')) {
-            // Delete old file if present
-            if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-                Storage::disk('public')->delete($product->image_path);
-            }
+        $oldImage = $product->image_path;
 
-            // Upload new file
-            $path = $request->file('image')->store('products', 'public');
-            $validated['image_path'] = $path;
+        // Upload the new image first, so a failed upload keeps the old one
+        if ($request->hasFile('image')) {
+            $validated['image_path'] = $images->upload($request->file('image'));
         }
 
         // Unset raw file object
         unset($validated['image']);
 
         $product->update($validated);
+
+        // Only delete the old image after the database update succeeded
+        if (isset($validated['image_path'])) {
+            $images->delete($oldImage);
+        }
 
         $this->clearProductCache($product->id);
 
@@ -181,13 +185,13 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Product $product)
+    public function destroy(Product $product, ImageService $images)
     {
-        if ($product->image_path && Storage::disk('public')->exists($product->image_path)) {
-            Storage::disk('public')->delete($product->image_path);
-        }
+        $imagePath = $product->image_path;
 
         $product->delete();
+
+        $images->delete($imagePath);
 
         $this->clearProductCache($product->id);
 
@@ -195,19 +199,23 @@ class ProductController extends Controller
     }
 
     /**
-     * Cache Invalidation Helper
+     * Current version number used in list cache keys.
+     */
+    private function listVersion(): int
+    {
+        return (int)Cache::rememberForever(self::LIST_VERSION_KEY, fn() => 1);
+    }
+
+    /**
+     * Cache invalidation helper.
+     *
+     * Bumping the version makes every cached product list obsolete at once.
+     * This works on any cache driver (file, database, redis), unlike scanning keys.
+     * Old entries simply expire after their 1-hour TTL.
      */
     private function clearProductCache(?int $id = null): void
     {
-        if (config('cache.default') === 'redis') {
-            $redis = Cache::redis();
-            $keys = $redis->keys('*products.list.*');
-            foreach ($keys as $key) {
-                // Strip redis prefix if set
-                $cleanKey = str_replace(config('database.redis.options.prefix', ''), '', $key);
-                Cache::forget($cleanKey);
-            }
-        }
+        Cache::forever(self::LIST_VERSION_KEY, $this->listVersion() + 1);
 
         if ($id) {
             Cache::forget("products.show.{$id}");
