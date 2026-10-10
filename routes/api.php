@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\Admin\AiController;
+use App\Http\Controllers\Api\ProductQuestionController;
+use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
@@ -67,6 +69,10 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
         // Payment
         Route::post('/orders/{order}/pay', [PaymentController::class, 'initiate']);
 
+        // Giving reviews & Asking questions
+        Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store']);
+        Route::post('/products/{product}/questions', [ProductQuestionController::class, 'store']);
+
         // Admin Catalog management
         Route::middleware('role:admin')->group(function () {
 
@@ -88,6 +94,9 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
             // SEO type Product description generator using GEMINI AI API
             Route::post('/ai/generate-description', [AiController::class, 'generateProductDescription']);
+
+            // Answering the questions
+            Route::patch('/questions/{question}/answer', [ProductQuestionController::class, 'answer']);
         });
     });
 });

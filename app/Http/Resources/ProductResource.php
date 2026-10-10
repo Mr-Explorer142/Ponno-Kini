@@ -23,6 +23,9 @@ class ProductResource extends JsonResource
             'image_url' => ImageService::url($this->image_path),
             'price' => $this->price,
             'category' => new CategoryResource($this->whenLoaded('category')),
+            'average_rating' => $this->average_rating,
+            'reviews' => ReviewResource::collection($this->whenLoaded('reviews')),
+            'questions' => QuestionResource::collection($this->whenLoaded('questions')),
             'created_at' => $this->created_at->toDateTimeString(),
         ];
     }
