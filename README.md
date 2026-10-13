@@ -137,8 +137,12 @@ Base URL: `http://127.0.0.1:8000/api`
 All requests should send `Accept: application/json`. Protected routes need `Authorization: Bearer <token>`, which is
 returned by the register and login endpoints.
 
-**Access levels:** -*Public* needs no token. -*Auth* needs a valid token. -*Verified* needs a token and a verified email.
--*Admin* needs a verified email and the `admin` role.
+**Access levels:**
+
+- **Public:** Needs no token.
+- **Auth:** Needs a valid token.
+- **Verified:** Needs a token and a verified email.
+- **Admin:** Needs a verified email and the `admin` role.
 
 ### Authentication
 
