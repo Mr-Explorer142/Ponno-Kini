@@ -50,7 +50,7 @@ invoices, and AI tools powered by Google Gemini. The core business rules are cov
 | Payments     | SSLCommerz                                 |
 | Testing      | Pest                                       |
 
-## 🚀 Installation & Setup
+## Installation & Setup
 
 ### Requirements
 
@@ -137,8 +137,8 @@ Base URL: `http://127.0.0.1:8000/api`
 All requests should send `Accept: application/json`. Protected routes need `Authorization: Bearer <token>`, which is
 returned by the register and login endpoints.
 
-**Access levels:** *Public* needs no token. *Auth* needs a valid token. *Verified* needs a token and a verified email.
-*Admin* needs a verified email and the `admin` role.
+**Access levels:** -*Public* needs no token. -*Auth* needs a valid token. -*Verified* needs a token and a verified email.
+-*Admin* needs a verified email and the `admin` role.
 
 ### Authentication
 
@@ -214,7 +214,7 @@ SSLCommerz calls these endpoints itself; clients should not use them.
   (`api-general`).
 - Run `php artisan route:list --path=api` to see every route with its middleware.
 
-## TestingA
+## Testing
 
 Tests run against an in-memory SQLite database, so your development data is never touched.
 
