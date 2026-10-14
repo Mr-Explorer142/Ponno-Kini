@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AiController;
+use App\Http\Controllers\Api\Auth\SocialAuthController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
@@ -31,6 +32,10 @@ Route::middleware('throttle:api-general')->group(function () {
     Route::get('/product/{product}', [ProductController::class, 'show']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
+
+    // Socialite OAuth Routes
+    Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect']);
+    Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback']);
 
     // Product Recommendations
     Route::post('/cart/recommendations', [RecommendationController::class, 'getCartRecommendations']);
