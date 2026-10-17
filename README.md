@@ -1,6 +1,6 @@
 # E-Commerce REST API with AI
 
-A portfolio-grade e-commerce REST API built with Laravel. It combines token authentication and role-based access, a
+An AI featured e-commerce REST API built with Laravel. It combines token authentication and role-based access, a
 cached product catalogue with Cloudinary image storage, an order and payment flow, verified-purchase reviews, PDF
 invoices, and AI tools powered by Google Gemini. The core business rules are covered by automated Pest tests.
 
