@@ -22,9 +22,7 @@ class SocialAuthController extends Controller
         }
 
         // Return the URL as JSON so React can redirect the browser window
-        $url = Socialite::driver($provider)->stateless()->redirect()->getTargetUrl();
-
-        return response()->json(['url' => $url]);
+        return $url = Socialite::driver($provider)->stateless()->redirect();
     }
 
     /**
@@ -54,6 +52,10 @@ class SocialAuthController extends Controller
             );
 
             // Assign default role if they are a brand new user
+            if (!$user->hasVerifiedEmail()) {
+                $user->markEmailAsVerified();
+            }
+
             if ($user->wasRecentlyCreated) {
                 $user->assignRole('customer');
             }
