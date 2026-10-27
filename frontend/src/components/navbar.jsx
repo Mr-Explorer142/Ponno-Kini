@@ -1,9 +1,10 @@
-import { Box, Flex, Button, Heading, Spacer } from "@chakra-ui/react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../store/useAuthStore";
+import { User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/useAuthStore";
 
 export default function Navbar() {
-    const { isAuthenticated, logout } = useAuthStore();
+    const { isAuthenticated, user, logout } = useAuthStore();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
@@ -12,36 +13,43 @@ export default function Navbar() {
     };
 
     return (
-        <Box bg="white" px={8} py={4} shadow="sm" mb={8}>
-            <Flex alignItems="center">
-                {/* Logo */}
-                <Heading size="md" as={Link} to="/">
+        <header className="border-b border-orange-200 bg-white shadow-sm">
+            <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
+                <Link to="/" className="text-xl font-bold text-primary">
                     PonnoKini
-                </Heading>
+                </Link>
 
-                <Spacer />
+                <nav className="flex items-center gap-2">
+                    <Button asChild variant="ghost">
+                        <Link to="/products">Catalog</Link>
+                    </Button>
 
-                {/* Conditional Buttons based on Zustand State */}
-                {isAuthenticated ? (
-                    <>
-                        <Button colorScheme="red" onClick={handleLogout}>
-                            Logout
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        <Button as={Link} to="/products" variant="ghost" mr={4}>
-                            Catalog
-                        </Button>
-                        <Button as={Link} to="/login" variant="ghost" mr={4}>
-                            Log in
-                        </Button>
-                        <Button as={Link} to="/register" colorScheme="blue">
-                            Sign Up
-                        </Button>
-                    </>
-                )}
-            </Flex>
-        </Box>
+                    {isAuthenticated ? (
+                        <>
+                            <Button asChild variant="ghost">
+                                <Link to="/profile">
+                                    <User />
+                                    <span className="max-w-32 truncate">
+                                        {user?.name ?? "Profile"}
+                                    </span>
+                                </Link>
+                            </Button>
+                            <Button variant="outline" onClick={handleLogout}>
+                                Logout
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button asChild variant="ghost">
+                                <Link to="/login">Log in</Link>
+                            </Button>
+                            <Button asChild>
+                                <Link to="/register">Sign Up</Link>
+                            </Button>
+                        </>
+                    )}
+                </nav>
+            </div>
+        </header>
     );
 }

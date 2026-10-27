@@ -21,8 +21,12 @@ class SocialAuthController extends Controller
             return response()->json(['message' => 'Provider not supported'], 400);
         }
 
-        // Return the URL as JSON so React can redirect the browser window
-        return $url = Socialite::driver($provider)->stateless()->redirect();
+        $url = Socialite::driver($provider)
+            ->stateless()
+            ->redirect()
+            ->getTargetUrl();
+
+        return response()->json(['url' => $url]);
     }
 
     /**
@@ -67,7 +71,6 @@ class SocialAuthController extends Controller
             $frontendUrl = env('FRONTEND_URL') . '/social-login?token=' . $token;
 
             return redirect()->away($frontendUrl);
-
         } catch (\Exception $e) {
             Log::error("Socialite Callback Error ({$provider}): " . $e->getMessage());
 

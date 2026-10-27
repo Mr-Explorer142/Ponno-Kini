@@ -1,52 +1,67 @@
+import { useEffect } from "react";
 import { Route, Routes } from "react-router-dom";
-import { Box, Container, Heading } from "@chakra-ui/react";
 import OAuthCallback from "./pages/OAuthCallback";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Navbar from "./components/navbar";
+import Profile from "./pages/Profile";
+import Navbar from "./components/Navbar";
+import { useAuthStore } from "./store/useAuthStore";
 
-// Initial Dummy Components
-const Home = () => <Heading size="xl">Home Page</Heading>;
-const ProductList = () => <Heading size="xl">Product Catalog</Heading>;
-const ForgotPassword = () => <Heading>Forgot Password</Heading>;
-const ResetPassword = () => <Heading>Reset Password</Heading>;
-const ProductDetail = () => <Heading>Single Product View</Heading>;
+// Initial dummy pages
+const Page = ({ title }) => <h1 className="text-3xl font-bold">{title}</h1>;
 
 function App() {
+    const fetchUser = useAuthStore((state) => state.fetchUser);
+
+    // Restore the user from /me on page load
+    useEffect(() => {
+        fetchUser();
+    }, [fetchUser]);
+
     return (
-        <Box minH="100vh" bg="gray.50" color="gray.900">
+        <div className="min-h-screen bg-background text-foreground">
             <Navbar />
-            <Container maxW="container.xl" p={8}>
+            <main className="mx-auto max-w-7xl px-4 py-8">
                 <Routes>
-                    {/* Public Auth Routes */}
+                    {/* Public auth routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
                     <Route
                         path="/forgot-password"
-                        element={<ForgotPassword />}
+                        element={<Page title="Forgot Password" />}
                     />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                    <Route path="/auth/callback" element={<OAuthCallback />} />
+                    <Route
+                        path="/reset-password"
+                        element={<Page title="Reset Password" />}
+                    />
+                    {/* Must match FRONTEND_URL . '/social-login' in Laravel */}
+                    <Route path="/social-login" element={<OAuthCallback />} />
 
-                    {/* Public Catalog Routes (Matches your api-general middleware) */}
-                    <Route path="/" element={<Home />} />
-                    <Route path="/products" element={<ProductList />} />
-                    <Route path="/products/:id" element={<ProductDetail />} />
+                    {/* Public catalog routes */}
+                    <Route path="/" element={<Page title="Home Page" />} />
+                    <Route
+                        path="/products"
+                        element={<Page title="Product Catalog" />}
+                    />
+                    <Route
+                        path="/products/:id"
+                        element={<Page title="Single Product View" />}
+                    />
 
-                    {/* Protected Routes */}
-                    <Route element={<ProtectedRoute />}></Route>
+                    {/* Protected routes */}
+                    <Route element={<ProtectedRoute />}>
+                        <Route path="/profile" element={<Profile />} />
+                    </Route>
 
-                    {/* 404 - Rotue Not Found or Matched */}
+                    {/* 404 */}
                     <Route
                         path="*"
-                        element={
-                            <Heading size="md">404 - Page Not Found!</Heading>
-                        }
+                        element={<Page title="404 - Page Not Found!" />}
                     />
                 </Routes>
-            </Container>
-        </Box>
+            </main>
+        </div>
     );
 }
 

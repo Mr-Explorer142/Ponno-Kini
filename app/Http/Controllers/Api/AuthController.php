@@ -72,7 +72,7 @@ class AuthController extends Controller
     // 3. Authenticated User Profile
     public function me(Request $request)
     {
-        return response($request->user());
+        return response()->json($request->user()->load('roles'));
     }
 
     // 4. Log out

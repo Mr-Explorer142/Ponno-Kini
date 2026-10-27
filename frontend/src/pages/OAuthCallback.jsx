@@ -1,33 +1,36 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuthStore } from "../store/useAuthStore";
-import { Box, Spinner, Text, VStack } from "@chakra-ui/react";
+import { LoaderCircle } from "lucide-react";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const OAuthCallback = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-
-    // const setAuth = useAuthStore((state) => state.setAuth);
+    const loginWithToken = useAuthStore((state) => state.loginWithToken);
+    const handled = useRef(false);
 
     useEffect(() => {
-        const token = searchParams.get();
+        // Stops React StrictMode from running this twice in development
+        if (handled.current) return;
+        handled.current = true;
 
-        if (token) {
-            localStorage.setItem("auth_token", token);
-            useAuthStore.setState({ token: token, isAuthenticated: true });
-            navigate("/products");
-        } else {
-            navigate("/login");
+        const token = searchParams.get("token");
+
+        if (!token) {
+            navigate("/login", { replace: true });
+            return;
         }
-    }, [searchParams, navigate]);
+
+        loginWithToken(token).then((success) => {
+            navigate(success ? "/products" : "/login", { replace: true });
+        });
+    }, []);
 
     return (
-        <Box display="flex" h="vh" alignItems="center" justifyContent="center">
-            <VStack>
-                <Spinner size="xl" color="blue.500" />
-                <Text>Completing login...</Text>
-            </VStack>
-        </Box>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">
+            <LoaderCircle className="size-10 animate-spin text-primary" />
+            <p className="text-muted-foreground">Completing login...</p>
+        </div>
     );
 };
 
