@@ -56,3 +56,23 @@ it('allows a user to review a product they successfully purchased', function () 
         ->product_id->toBe($product->id)
         ->rating->toBe(5);
 });
+
+it('shows recent written reviews with their product on the public homepage feed', function () {
+    $customer = User::factory()->create(['name' => 'Happy Customer']);
+    $category = Category::factory()->create();
+    $product = Product::factory()->create(['category_id' => $category->id]);
+
+    Review::create([
+        'product_id' => $product->id,
+        'user_id' => $customer->id,
+        'rating' => 5,
+        'comment' => 'Wonderful quality.',
+    ]);
+
+    $response = $this->getJson('/api/reviews');
+
+    expect($response->status())->toBe(200)
+        ->and($response->json('data.0.user'))->toBe('Happy Customer')
+        ->and($response->json('data.0.product.name'))->toBe($product->name)
+        ->and($response->json('data.0.comment'))->toBe('Wonderful quality.');
+});

@@ -23,6 +23,7 @@ Route::middleware('throttle:auth-strict')->group(function () {
 
     // Signed Email Verification Endpoint
     Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+        ->middleware('signed')
         ->name('verification.verify');
 });
 
@@ -32,6 +33,7 @@ Route::middleware('throttle:api-general')->group(function () {
     Route::get('/product/{product}', [ProductController::class, 'show']);
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/categories/{category}', [CategoryController::class, 'show']);
+    Route::get('/reviews', [ProductReviewController::class, 'index']);
 
     // Socialite OAuth Routes
     Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect']);

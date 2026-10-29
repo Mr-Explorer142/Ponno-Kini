@@ -21,7 +21,7 @@ export default function SocialLoginButtons() {
             <Button
                 type="button"
                 variant="outline"
-                className="cursor-pointer w-full border-orange-200 hover:bg-orange-50"
+                className="cursor-pointer w-full border-border hover:bg-secondary"
                 onClick={() => handleSocialLogin("google")}
             >
                 <FaGoogle />

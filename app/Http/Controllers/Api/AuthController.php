@@ -89,21 +89,17 @@ class AuthController extends Controller
     public function verifyEmail($id, $hash)
     {
         $user = User::findOrFail($id);
+        $frontend = config('app.frontend_url');
 
-        // Verify hash integrity
-        if (!hash_equals((string)$hash, sha1($user->getEmailForVerification()))) {
-            return response()->json(['message' => 'Invalid email verification link.'], 400);
+        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
+            return redirect()->away($frontend . '/profile?verified=invalid');
         }
 
-        if ($user->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Email address is already verified.']);
-        }
-
-        if ($user->markEmailAsVerified()) {
+        if (!$user->hasVerifiedEmail() && $user->markEmailAsVerified()) {
             event(new Verified($user));
         }
 
-        return response()->json(['message' => 'Email successfully verified!']);
+        return redirect()->away($frontend . '/profile?verified=1');
     }
 
     // 6. Resending Verification Email
@@ -157,5 +153,4 @@ class AuthController extends Controller
             ? response()->json(['message' => __($status)])
             : response()->json(['message' => __($status)], 400);
     }
-
 }

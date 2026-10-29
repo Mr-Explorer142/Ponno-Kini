@@ -28,6 +28,9 @@ export default function Login() {
             ? "Social login failed. Please try again."
             : null;
 
+    // ResetPassword sends users here with ?reset=1 after success
+    const resetSuccess = searchParams.get("reset") === "1";
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         await login({ email, password });
@@ -38,7 +41,7 @@ export default function Login() {
     };
 
     return (
-        <Card className="mx-auto mt-10 w-full max-w-md border-orange-200">
+        <Card className="mx-auto mt-5 w-full max-w-md border-border sm:mt-10">
             <CardHeader>
                 <CardTitle className="text-2xl">Login</CardTitle>
                 <CardDescription>
@@ -48,8 +51,15 @@ export default function Login() {
 
             <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
+                    {resetSuccess && (
+                        <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400">
+                            Password reset successfully. Please sign in with
+                            your new password.
+                        </p>
+                    )}
+
                     {(error || socialError) && (
-                        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                             {error || socialError}
                         </p>
                     )}
@@ -67,7 +77,15 @@ export default function Login() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="password">Password</Label>
+                            <Link
+                                to="/forgot-password"
+                                className="text-sm text-primary underline-offset-4 hover:underline"
+                            >
+                                Forgot password?
+                            </Link>
+                        </div>
                         <Input
                             id="password"
                             type="password"
@@ -85,11 +103,11 @@ export default function Login() {
                 </form>
 
                 <div className="my-5 flex items-center">
-                    <div className="flex-1 border-t border-orange-200" />
+                    <div className="flex-1 border-t border-border" />
                     <span className="px-3 text-xs uppercase text-muted-foreground">
                         Or
                     </span>
-                    <div className="flex-1 border-t border-orange-200" />
+                    <div className="flex-1 border-t border-border" />
                 </div>
 
                 <SocialLoginButtons />

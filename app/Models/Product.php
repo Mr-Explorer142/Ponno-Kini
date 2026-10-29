@@ -21,6 +21,11 @@ class Product extends Model
         return $this->hasMany(Review::class)->latest();
     }
 
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
     public function questions()
     {
         return $this->hasMany(Question::class)->latest();

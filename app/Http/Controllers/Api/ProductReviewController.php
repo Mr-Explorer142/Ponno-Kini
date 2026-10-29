@@ -5,11 +5,24 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ReviewResource;
 use App\Models\Product;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class ProductReviewController extends Controller
 {
+    public function index()
+    {
+        $reviews = Review::with(['user', 'product'])
+            ->whereNotNull('comment')
+            ->where('comment', '!=', '')
+            ->latest()
+            ->limit(6)
+            ->get();
+
+        return ReviewResource::collection($reviews);
+    }
+
     public function store(Request $request, Product $product)
     {
         $validated = $request->validate([

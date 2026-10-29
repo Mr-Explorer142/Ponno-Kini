@@ -48,7 +48,7 @@ export default function Register() {
     };
 
     return (
-        <Card className="mx-auto mt-10 w-full max-w-md border-orange-200">
+        <Card className="mx-auto mt-5 w-full max-w-md border-border sm:mt-10">
             <CardHeader>
                 <CardTitle className="text-2xl">Create an Account</CardTitle>
                 <CardDescription>
@@ -59,7 +59,7 @@ export default function Register() {
             <CardContent>
                 <form onSubmit={handleRegister} className="space-y-4">
                     {(localError || error) && (
-                        <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                        <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                             {localError || error}
                         </p>
                     )}
@@ -120,11 +120,11 @@ export default function Register() {
                 </form>
 
                 <div className="my-5 flex items-center">
-                    <div className="flex-1 border-t border-orange-200" />
+                    <div className="flex-1 border-t border-border" />
                     <span className="px-3 text-xs uppercase text-muted-foreground">
                         Or
                     </span>
-                    <div className="flex-1 border-t border-orange-200" />
+                    <div className="flex-1 border-t border-border" />
                 </div>
 
                 <SocialLoginButtons />

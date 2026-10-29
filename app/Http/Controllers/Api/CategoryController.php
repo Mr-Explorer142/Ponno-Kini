@@ -12,13 +12,22 @@ use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
+    private const ALL_CACHE_KEY = 'categories.all.v2';
+
     /**
      * Display a listing of the resource.
      */
     public function index()
     {
-        $categories = Cache::remember('categories.all', 86400, function () {
-            return Category::all();
+        $categories = Cache::remember(self::ALL_CACHE_KEY, 86400, function () {
+            return Category::query()
+                ->get(['id', 'name', 'slug'])
+                ->map(fn(Category $category) => [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'slug' => $category->slug,
+                ])
+                ->all();
         });
 
         return CategoryResource::collection($categories);
@@ -47,8 +56,14 @@ class CategoryController extends Controller
      */
     public function show($id)
     {
-        $category = Cache::remember("categories.show.{$id}", 86400, function () use ($id) {
-            return Category::findOrFail($id);
+        $category = Cache::remember("categories.show.v2.{$id}", 86400, function () use ($id) {
+            $category = Category::findOrFail($id);
+
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+            ];
         });
 
         return new CategoryResource($category);
@@ -96,8 +111,10 @@ class CategoryController extends Controller
     private function clearCategoryCache(?int $id = null): void
     {
         Cache::forget('categories.all');
-        if ($id) {
+        Cache::forget(self::ALL_CACHE_KEY);
+        if ($id !== null) {
             Cache::forget("categories.show.{$id}");
+            Cache::forget("categories.show.v2.{$id}");
         }
     }
 }

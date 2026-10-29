@@ -24,10 +24,11 @@ class ProductController extends Controller
         $queryString = http_build_query($request->query());
         $cacheKey = 'products.list.v' . $this->listVersion() . '.' . md5($queryString);
 
-        $isCacheHit = Cache::has($cacheKey);
+        $isBestSellerRequest = $request->query('sort') === 'best_selling';
+        $isCacheHit = !$isBestSellerRequest && Cache::has($cacheKey);
 
-        // 2. Cache ONLY the ID list and pagination metadata (tiny memory footprint)
-        $cached = Cache::remember($cacheKey, 3600, function () use ($request) {
+        // 2. Keep regular list caches small; always recalculate paid-order rankings.
+        $loadProductIds = function () use ($request) {
             $paginator = Product::query()
                 ->when($request->query('search'), function ($query, $search) {
                     $query->where(function ($q) use ($search) {
@@ -44,11 +45,20 @@ class ProductController extends Controller
                 ->when($request->query('max_price'), function ($query, $maxPrice) {
                     $query->where('price', '<=', $maxPrice);
                 })
+                ->when($request->query('sort') === 'best_selling', function ($query) {
+                    $query->withSum([
+                        'orderItems as paid_quantity' => fn($orderItems) => $orderItems->whereHas(
+                            'order',
+                            fn($orders) => $orders->where('payment_status', 'paid')
+                        ),
+                    ], 'quantity');
+                })
                 ->when($request->query('sort'), function ($query, $sort) {
                     match ($sort) {
                         'price_asc' => $query->orderBy('price', 'asc'),
                         'price_desc' => $query->orderBy('price', 'desc'),
                         'oldest' => $query->orderBy('created_at', 'asc'),
+                        'best_selling' => $query->orderByDesc('paid_quantity')->orderByDesc('created_at'),
                         default => $query->latest(),
                     };
                 }, function ($query) {
@@ -65,7 +75,10 @@ class ProductController extends Controller
                 'path' => $request->url(),
                 'query' => $request->query(),
             ];
-        });
+        };
+        $cached = $isBestSellerRequest
+            ? $loadProductIds()
+            : Cache::remember($cacheKey, 3600, $loadProductIds);
 
         // 3. Fast primary-key lookup for the page's items + eager load category
         $ids = $cached['ids'];

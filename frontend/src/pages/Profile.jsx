@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
     CalendarDays,
     KeyRound,
@@ -52,7 +52,7 @@ function InfoRow({ icon: Icon, label, children }) {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
                     {label}
                 </p>
-                <div className="break-words text-sm font-medium">
+                <div className="wrap-break-word text-sm font-medium">
                     {children}
                 </div>
             </div>
@@ -62,17 +62,17 @@ function InfoRow({ icon: Icon, label, children }) {
 
 function ProfileSkeleton() {
     return (
-        <div className="mx-auto mt-10 max-w-2xl animate-pulse space-y-4 rounded-xl border border-orange-200 bg-white p-6">
-            <div className="flex items-center gap-4">
-                <div className="size-20 rounded-full bg-orange-100" />
-                <div className="space-y-2">
-                    <div className="h-5 w-40 rounded bg-orange-100" />
-                    <div className="h-4 w-56 rounded bg-orange-100" />
+        <div className="mx-auto mt-5 max-w-2xl animate-pulse space-y-4 rounded-xl border border-border bg-card p-4 sm:mt-10 sm:p-6">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                <div className="size-16 shrink-0 rounded-full bg-secondary sm:size-20" />
+                <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-5 w-40 max-w-full rounded bg-secondary" />
+                    <div className="h-4 w-56 max-w-full rounded bg-secondary" />
                 </div>
             </div>
-            <div className="h-4 w-full rounded bg-orange-100" />
-            <div className="h-4 w-3/4 rounded bg-orange-100" />
-            <div className="h-4 w-1/2 rounded bg-orange-100" />
+            <div className="h-4 w-full rounded bg-secondary" />
+            <div className="h-4 w-3/4 rounded bg-secondary" />
+            <div className="h-4 w-1/2 rounded bg-secondary" />
         </div>
     );
 }
@@ -80,6 +80,9 @@ function ProfileSkeleton() {
 export default function Profile() {
     const { user, fetchUser, logout } = useAuthStore();
     const navigate = useNavigate();
+
+    const [searchParams] = useSearchParams();
+    const verifiedParam = searchParams.get("verified");
 
     const [sending, setSending] = useState(false);
     const [notice, setNotice] = useState(null);
@@ -132,10 +135,10 @@ export default function Profile() {
         : "Email & password";
 
     return (
-        <Card className="mx-auto mt-10 w-full max-w-2xl border-orange-200">
+        <Card className="mx-auto mt-5 w-full max-w-2xl border-border sm:mt-10">
             <CardHeader>
-                <div className="flex items-center gap-4">
-                    <Avatar className="size-20 border-2 border-orange-200">
+                <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+                    <Avatar className="size-16 border-2 border-border sm:size-20">
                         <AvatarImage src={user.avatar} alt={user.name} />
                         <AvatarFallback className="bg-secondary text-xl font-semibold text-secondary-foreground">
                             {getInitials(user.name)}
@@ -143,7 +146,9 @@ export default function Profile() {
                     </Avatar>
 
                     <div className="min-w-0 space-y-1">
-                        <CardTitle className="text-2xl">{user.name}</CardTitle>
+                        <CardTitle className="wrap-break-word text-xl sm:text-2xl">
+                            {user.name}
+                        </CardTitle>
                         <CardDescription className="break-all">
                             {user.email}
                         </CardDescription>
@@ -157,8 +162,8 @@ export default function Profile() {
                                 variant="outline"
                                 className={
                                     isVerified
-                                        ? "border-green-300 bg-green-50 text-green-700"
-                                        : "border-amber-300 bg-amber-50 text-amber-700"
+                                        ? "border-green-300 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300"
+                                        : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
                                 }
                             >
                                 {isVerified ? "Verified" : "Not verified"}
@@ -168,7 +173,18 @@ export default function Profile() {
                 </div>
             </CardHeader>
 
-            <CardContent className="divide-y divide-orange-100">
+            <CardContent className="divide-y divide-border">
+                {verifiedParam === "1" && (
+                    <p className="mb-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
+                        Your email has been verified.
+                    </p>
+                )}
+                {verifiedParam === "invalid" && (
+                    <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+                        That verification link is invalid or has expired.
+                    </p>
+                )}
+
                 <InfoRow icon={Mail} label="Email address">
                     {user.email}
                 </InfoRow>
@@ -193,14 +209,15 @@ export default function Profile() {
                             <p
                                 className={
                                     notice.type === "success"
-                                        ? "rounded-md bg-green-50 px-3 py-2 text-sm text-green-700"
-                                        : "rounded-md bg-red-50 px-3 py-2 text-sm text-red-600"
+                                        ? "rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-300"
+                                        : "rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
                                 }
                             >
                                 {notice.text}
                             </p>
                         )}
                         <Button
+                            className="w-full whitespace-normal text-center sm:w-auto"
                             onClick={handleResendVerification}
                             disabled={sending}
                         >
@@ -213,11 +230,15 @@ export default function Profile() {
                 )}
             </CardContent>
 
-            <CardFooter className="flex flex-wrap justify-between gap-3 border-t border-orange-100 pt-6">
-                <Button asChild variant="outline">
+            <CardFooter className="flex flex-col items-stretch gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+                <Button asChild variant="outline" className="w-full sm:w-auto">
                     <Link to="/products">Continue shopping</Link>
                 </Button>
-                <Button variant="outline" onClick={handleLogout}>
+                <Button
+                    className="w-full cursor-pointer sm:w-auto"
+                    variant="outline"
+                    onClick={handleLogout}
+                >
                     <LogOut />
                     Logout
                 </Button>
