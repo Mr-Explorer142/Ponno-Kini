@@ -17,11 +17,13 @@ export const useAuthStore = create((set) => ({
 
             localStorage.setItem("auth_token", token);
             set({ user, token, isAuthenticated: true, loading: false });
+            return true;
         } catch (err) {
             set({
                 error: err.response?.data?.message || "Registration Failed!",
                 loading: false,
             });
+            return false;
         }
     },
 
@@ -33,11 +35,13 @@ export const useAuthStore = create((set) => ({
 
             localStorage.setItem("auth_token", token);
             set({ user, token, isAuthenticated: true, loading: false });
+            return true;
         } catch (err) {
             set({
                 error: err.response?.data?.message || "Login failed",
                 loading: false,
             });
+            return false;
         }
     },
 

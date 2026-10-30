@@ -33,10 +33,11 @@ export default function Login() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        await login({ email, password });
+        const loggedIn = await login({ email, password });
 
-        if (useAuthStore.getState().isAuthenticated) {
-            navigate("/products");
+        if (loggedIn) {
+            const user = useAuthStore.getState().user;
+            navigate(user?.email_verified_at ? "/products" : "/verify-email");
         }
     };
 

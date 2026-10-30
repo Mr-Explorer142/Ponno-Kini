@@ -21,10 +21,6 @@ Route::middleware('throttle:auth-strict')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('password.reset');
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
-    // Signed Email Verification Endpoint
-    Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
-        ->middleware('signed')
-        ->name('verification.verify');
 });
 
 // public browsing
@@ -52,7 +48,9 @@ Route::post('/payment/ipn', [PaymentController::class, 'ipn']);
 // Protected & Authenticated routes
 Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
-    // Email Verification Notification
+    // Email Verification
+    Route::get('/email/verification-status', [AuthController::class, 'verificationStatus']);
+    Route::post('/email/verify-code', [AuthController::class, 'verifyEmailCode']);
     Route::post(
         '/email/verification-notification',
         [AuthController::class, 'resendVerificationNotification']

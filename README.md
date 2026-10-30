@@ -146,16 +146,21 @@ returned by the register and login endpoints.
 
 ### Authentication
 
-| Method | Endpoint                           | Access               | Description                   |
-|--------|------------------------------------|----------------------|-------------------------------|
-| POST   | `/register`                        | Public               | Register a customer           |
-| POST   | `/login`                           | Public               | Log in and receive a token    |
-| POST   | `/forgot-password`                 | Public               | Request a password reset      |
-| POST   | `/reset-password`                  | Public               | Reset the password            |
-| GET    | `/email/verify/{id}/{hash}`        | Public (signed link) | Verify an email address       |
-| POST   | `/email/verification-notification` | Auth                 | Resend the verification email |
-| GET    | `/me`                              | Auth                 | Current user                  |
-| POST   | `/logout`                          | Auth                 | Revoke the current token      |
+| Method | Endpoint                            | Access | Description                                            |
+|--------|-------------------------------------|--------|--------------------------------------------------------|
+| POST   | `/register`                         | Public | Register and email a 6-character verification code    |
+| POST   | `/login`                            | Public | Log in and receive a token                             |
+| GET    | `/email/verification-status`        | Auth   | Get verification state and resend cooldown            |
+| POST   | `/email/verify-code`                | Auth   | Verify with a code (10-minute expiry, 5-attempt lock) |
+| POST   | `/email/verification-notification`  | Auth   | Resend the code (60-second cooldown)                  |
+| POST   | `/forgot-password`                  | Public | Request a password reset                               |
+| POST   | `/reset-password`                   | Public | Reset the password                                     |
+| GET    | `/me`                               | Auth   | Current user                                           |
+| POST   | `/logout`                           | Auth   | Revoke the current token                               |
+
+After registration, the frontend opens `/verify-email`. The verification code
+is stored as a hash; a successful verification marks the account verified and
+clears the stored code.
 
 ### Catalog & recommendations
 

@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
+import VerifyEmail from "./pages/VerifyEmail";
 import Home from "./pages/Home";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -66,6 +67,7 @@ function App() {
 
                     {/* Protected routes */}
                     <Route element={<ProtectedRoute />}>
+                        <Route path="/verify-email" element={<VerifyEmail />} />
                         <Route path="/profile" element={<Profile />} />
                     </Route>
 

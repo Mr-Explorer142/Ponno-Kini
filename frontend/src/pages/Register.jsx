@@ -35,15 +35,15 @@ export default function Register() {
         }
 
         // Match Laravel's validation rules
-        await register({
+        const registered = await register({
             name,
             email,
             password,
             password_confirmation: passwordConfirmation,
         });
 
-        if (useAuthStore.getState().isAuthenticated) {
-            navigate("/products");
+        if (registered) {
+            navigate("/verify-email");
         }
     };
 

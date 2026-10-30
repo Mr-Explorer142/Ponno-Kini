@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
+use App\Notifications\EmailVerificationCodeNotification;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
 
@@ -31,15 +33,16 @@ class AuthController extends Controller
 
         $user->assignRole('customer');
 
-        event(new Registered($user));
+        $this->sendVerificationCode($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'User registered successfully!',
+            'message' => 'User registered successfully. Check your email for the verification code.',
             'user' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',
+            'resend_after_seconds' => 60,
         ], 201);
     }
 
@@ -85,33 +88,150 @@ class AuthController extends Controller
         ]);
     }
 
-    // 5. Email verification Link
-    public function verifyEmail($id, $hash)
+    // 5. Email verification code
+    public function verifyEmailCode(Request $request)
     {
-        $user = User::findOrFail($id);
-        $frontend = config('app.frontend_url');
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'size:6', 'regex:/^(?=.*[A-Z])(?=.*[0-9])[A-Z0-9]{6}$/'],
+        ]);
 
-        if (!hash_equals((string) $hash, sha1($user->getEmailForVerification()))) {
-            return redirect()->away($frontend . '/profile?verified=invalid');
-        }
+        return DB::transaction(function () use ($request, $validated) {
+            $user = User::query()->lockForUpdate()->findOrFail($request->user()->getKey());
 
-        if (!$user->hasVerifiedEmail() && $user->markEmailAsVerified()) {
+            if ($user->hasVerifiedEmail()) {
+                return response()->json(['message' => 'Email address is already verified.'], 400);
+            }
+
+            if ($user->verification_attempts >= 5) {
+                return response()->json([
+                    'message' => 'Too many incorrect codes. Request a new code to try again.',
+                ], 429);
+            }
+
+            if (!$user->verification_code_expires_at || $user->verification_code_expires_at->isPast()) {
+                return response()->json([
+                    'message' => 'This verification code has expired. Request a new code.',
+                ], 422);
+            }
+
+            if (!$user->verification_code_hash || !Hash::check($validated['code'], $user->verification_code_hash)) {
+                $user->increment('verification_attempts');
+
+                return response()->json([
+                    'message' => $user->verification_attempts >= 5
+                        ? 'Too many incorrect codes. Request a new code to try again.'
+                        : 'The verification code is incorrect.',
+                    'attempts_remaining' => max(0, 5 - $user->verification_attempts),
+                ], $user->verification_attempts >= 5 ? 429 : 422);
+            }
+
+            $user->forceFill([
+                'email_verified_at' => now(),
+                'verification_code_hash' => null,
+                'verification_code_expires_at' => null,
+                'verification_attempts' => 0,
+            ])->save();
+
             event(new Verified($user));
-        }
 
-        return redirect()->away($frontend . '/profile?verified=1');
+            return response()->json([
+                'message' => 'Your email address has been verified.',
+                'user' => $user,
+            ]);
+        });
     }
 
-    // 6. Resending Verification Email
+    // 6. Resending the verification code
     public function resendVerificationNotification(Request $request)
     {
-        if ($request->user()->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Email address is already verified.'], 400);
+        $result = DB::transaction(function () use ($request) {
+            $user = User::query()->lockForUpdate()->findOrFail($request->user()->getKey());
+
+            if ($user->hasVerifiedEmail()) {
+                return ['error' => 'Email address is already verified.', 'status' => 400];
+            }
+
+            $retryAfter = $user->verification_code_sent_at
+                ? max(0, 60 - (int) $user->verification_code_sent_at->diffInSeconds(now()))
+                : 0;
+
+            if ($retryAfter > 0) {
+                return [
+                    'error' => 'Please wait before requesting another verification code.',
+                    'retry_after' => $retryAfter,
+                    'status' => 429,
+                ];
+            }
+
+            return [
+                'user' => $user,
+                'code' => $this->createVerificationCode($user),
+            ];
+        });
+
+        if (isset($result['error'])) {
+            return response()->json([
+                'message' => $result['error'],
+                ...isset($result['retry_after']) ? ['retry_after' => $result['retry_after']] : [],
+            ], $result['status']);
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        $result['user']->notify(new EmailVerificationCodeNotification($result['code']));
 
-        return response()->json(['message' => 'Verification link sent to your inbox.']);
+        return response()->json([
+            'message' => 'A new verification code has been sent.',
+            'resend_after_seconds' => 60,
+        ]);
+    }
+
+    public function verificationStatus(Request $request)
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'email' => $user->email,
+            'verified' => $user->hasVerifiedEmail(),
+            'expires_at' => $user->verification_code_expires_at,
+            'resend_after_seconds' => $user->verification_code_sent_at
+                ? max(0, 60 - (int) $user->verification_code_sent_at->diffInSeconds(now()))
+                : 0,
+            'attempts_remaining' => max(0, 5 - $user->verification_attempts),
+        ]);
+    }
+
+    private function sendVerificationCode(User $user): void
+    {
+        $code = $this->createVerificationCode($user);
+        $user->notify(new EmailVerificationCodeNotification($code));
+    }
+
+    private function createVerificationCode(User $user): string
+    {
+        $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+        $digits = '23456789';
+        $characters = $letters . $digits;
+        $code = $letters[random_int(0, strlen($letters) - 1)]
+            . $digits[random_int(0, strlen($digits) - 1)];
+
+        for ($index = 0; $index < 4; $index++) {
+            $code .= $characters[random_int(0, strlen($characters) - 1)];
+        }
+
+        $code = str_split($code);
+        for ($index = count($code) - 1; $index > 0; $index--) {
+            $swapIndex = random_int(0, $index);
+            [$code[$index], $code[$swapIndex]] = [$code[$swapIndex], $code[$index]];
+        }
+        $code = implode('', $code);
+
+        $user->forceFill([
+            'verification_code_hash' => Hash::make($code),
+            'verification_code_expires_at' => now()->addMinutes(10),
+            'verification_code_sent_at' => now(),
+            'verification_attempts' => 0,
+        ])->save();
+
+        return $code;
     }
 
     // 7. Sending Reset Password Email Link
