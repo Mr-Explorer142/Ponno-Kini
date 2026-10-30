@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Log;
 class SSLCommerzService
 {
     protected string $storeId;
+
     protected string $storePassword;
+
     protected string $apiDomain;
 
     public function __construct()
@@ -22,16 +24,16 @@ class SSLCommerzService
     /**
      * Initiate payment request with SSLCommerz Gateway
      */
-    public function initiatePayment(Order $order): array
+    public function initiatePayment(Order $order, string $transactionId): array
     {
         $shipping = $order->shipping_address;
 
         $postData = [
             'store_id' => $this->storeId,
             'store_passwd' => $this->storePassword,
-            'total_amount' => $order->total_amount, // Converting cents to BDT
+            'total_amount' => $order->total_amount,
             'currency' => 'BDT',
-            'tran_id' => $order->order_number,
+            'tran_id' => $transactionId,
             'product_category' => 'General',
             'success_url' => url('/api/payment/success'),
             'fail_url' => url('/api/payment/fail'),
@@ -49,13 +51,14 @@ class SSLCommerzService
 
             // Shipment Parameters
             'shipping_method' => 'NO',
-            'product_name' => 'Order #' . $order->order_number,
+            'product_name' => 'Order #'.$order->order_number,
         ];
 
         $response = Http::asForm()->post("{$this->apiDomain}/gwprocess/v4/api.php", $postData);
 
         if ($response->failed()) {
             Log::error('SSLCommerz Initiation Failed', ['response' => $response->body()]);
+
             return ['status' => 'FAILED', 'message' => 'Unable to connect to payment gateway.'];
         }
 
@@ -65,20 +68,25 @@ class SSLCommerzService
     /**
      * Verify payment status using SSLCommerz Validation API
      */
-    public function validatePayment(string $valId): bool
+    public function validatePayment(string $valId, string $transactionId, int $amount): bool
     {
-        $url = "{$this->apiDomain}/validator/api/validationserverAPI.php?" . http_build_query([
-                'val_id' => $valId,
-                'store_id' => $this->storeId,
-                'store_passwd' => $this->storePassword,
-                'format' => 'json',
-            ]);
+        $url = "{$this->apiDomain}/validator/api/validationserverAPI.php?".http_build_query([
+            'val_id' => $valId,
+            'store_id' => $this->storeId,
+            'store_passwd' => $this->storePassword,
+            'format' => 'json',
+        ]);
 
         $response = Http::get($url);
 
         if ($response->successful()) {
             $data = $response->json();
-            return isset($data['status']) && ($data['status'] === 'VALID' || $data['status'] === 'VALIDATED');
+
+            return in_array($data['status'] ?? null, ['VALID', 'VALIDATED'], true)
+                && ($data['tran_id'] ?? null) === $transactionId
+                && ($data['currency'] ?? null) === 'BDT'
+                && is_numeric($data['amount'] ?? null)
+                && (float) $data['amount'] === (float) $amount;
         }
 
         return false;

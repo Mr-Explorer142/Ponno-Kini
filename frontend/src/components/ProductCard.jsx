@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PackageOpen, Star } from "lucide-react";
+import AddToCartButton from "@/components/AddToCartButton";
 
 const formatPrice = (price) =>
     `৳${new Intl.NumberFormat("en-BD").format(Number(price) || 0)}`;
@@ -68,6 +69,9 @@ export default function ProductCard({ product, badge }) {
                     </div>
                 </div>
             </Link>
+            <div className="px-3 pb-3 sm:px-4 sm:pb-4">
+                <AddToCartButton product={product} className="w-full" />
+            </div>
         </article>
     );
 }

@@ -147,14 +147,12 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Cache::remember("products.show.{$id}", 3600, function () use ($id) {
-            return Product::with([
-                'category',
-                'reviews.user',
-                'questions.user',
-                'questions.answerer'
-            ])->findOrFail($id);
-        });
+        $product = Product::with([
+            'category',
+            'reviews.user',
+            'questions.user',
+            'questions.answerer'
+        ])->findOrFail($id);
 
         return new ProductResource($product);
     }

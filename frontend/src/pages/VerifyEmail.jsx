@@ -118,7 +118,7 @@ export default function VerifyEmail() {
                 </CardHeader>
                 <CardContent>
                     <Button
-                        className="w-full"
+                        className="w-full gap-2 px-4"
                         onClick={() => navigate("/products")}
                     >
                         Continue shopping

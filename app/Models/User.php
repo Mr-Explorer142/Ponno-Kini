@@ -12,12 +12,12 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'provider', 'provider_id', 'avatar', 'email_verified_at'])]
+#[Fillable(['name', 'email', 'password', 'provider', 'provider_id', 'avatar', 'email_verified_at', 'address'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, HasRoles, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -32,6 +32,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'verification_code_sent_at' => 'datetime',
             'verification_attempts' => 'integer',
             'password' => 'hashed',
+            'address' => 'array',
         ];
     }
 

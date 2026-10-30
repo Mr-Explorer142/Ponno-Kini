@@ -9,6 +9,7 @@ use App\Notifications\PaymentSuccessfulNotification;
 use App\Services\SSLCommerzService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class PaymentController extends Controller
 {
@@ -30,13 +31,17 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Order is already paid.'], 400);
         }
 
-        $result = $this->sslCommerz->initiatePayment($order);
+        $transactionId = $order->order_number.'-'.Str::upper(Str::random(8));
+        $result = $this->sslCommerz->initiatePayment($order, $transactionId);
 
-        if (isset($result['status']) && $result['status'] === 'SUCCESS') {
+        if (
+            ($result['status'] ?? null) === 'SUCCESS'
+            && filled($result['GatewayPageURL'] ?? null)
+        ) {
             // Create pending record in payments table
             Payment::create([
                 'order_id' => $order->id,
-                'transaction_id' => $order->order_number,
+                'transaction_id' => $transactionId,
                 'gateway' => 'sslcommerz',
                 'amount' => $order->total_amount,
                 'currency' => 'BDT',
@@ -63,10 +68,15 @@ class PaymentController extends Controller
         $valId = $request->input('val_id');
         $cardType = $request->input('card_type');
 
-        $order = Order::where('order_number', $tranId)->firstOrFail();
         $payment = Payment::where('transaction_id', $tranId)->latest()->first();
+        abort_unless($payment, 404, 'Payment transaction not found.');
+        $order = $payment->order;
 
-        if ($this->sslCommerz->validatePayment($valId)) {
+        if ($order->payment_status === 'paid') {
+            return redirect()->away($this->frontendResultUrl($order, 'success'));
+        }
+
+        if ($valId && $this->sslCommerz->validatePayment($valId, $tranId, $order->total_amount)) {
             DB::transaction(function () use ($order, $payment, $valId, $cardType, $request) {
                 // Update Payment Log
                 if ($payment) {
@@ -87,53 +97,55 @@ class PaymentController extends Controller
                 $order->user->notify(new PaymentSuccessfulNotification($order));
             });
 
-            return response()->json([
-                'message' => 'Payment successful!',
-                'order_number' => $order->order_number,
-                'status' => 'paid',
-            ]);
+            return redirect()->away($this->frontendResultUrl($order, 'success'));
         }
 
-        if ($payment) {
+        if ($payment && $payment->status !== 'paid') {
             $payment->update(['status' => 'failed', 'raw_response' => $request->all()]);
         }
-        $order->update(['payment_status' => 'failed', 'status' => 'failed']);
+        if ($order->payment_status !== 'paid') {
+            $order->update(['payment_status' => 'failed', 'status' => 'failed']);
+        }
 
-        return response()->json(['message' => 'Payment validation failed.'], 400);
+        return redirect()->away($this->frontendResultUrl($order, 'failed'));
     }
 
     // 3. Fail Callback
     public function fail(Request $request)
     {
         $tranId = $request->input('tran_id');
-        $order = Order::where('order_number', $tranId)->first();
         $payment = Payment::where('transaction_id', $tranId)->latest()->first();
+        $order = $payment?->order;
 
-        if ($payment) {
+        if ($payment && $payment->status !== 'paid') {
             $payment->update(['status' => 'failed', 'raw_response' => $request->all()]);
         }
-        if ($order) {
+        if ($order && $order->payment_status !== 'paid') {
             $order->update(['payment_status' => 'failed', 'status' => 'failed']);
         }
 
-        return response()->json(['message' => 'Payment failed.'], 400);
+        return $order
+            ? redirect()->away($this->frontendResultUrl($order, 'failed'))
+            : response()->json(['message' => 'Payment failed.'], 400);
     }
 
     // 4. Cancel Callback
     public function cancel(Request $request)
     {
         $tranId = $request->input('tran_id');
-        $order = Order::where('order_number', $tranId)->first();
         $payment = Payment::where('transaction_id', $tranId)->latest()->first();
+        $order = $payment?->order;
 
-        if ($payment) {
+        if ($payment && $payment->status !== 'paid') {
             $payment->update(['status' => 'cancelled', 'raw_response' => $request->all()]);
         }
-        if ($order) {
+        if ($order && $order->payment_status !== 'paid') {
             $order->update(['payment_status' => 'cancelled', 'status' => 'cancelled']);
         }
 
-        return response()->json(['message' => 'Payment cancelled by user.']);
+        return $order
+            ? redirect()->away($this->frontendResultUrl($order, 'cancelled'))
+            : response()->json(['message' => 'Payment cancelled by user.']);
     }
 
     // 5. IPN Webhook
@@ -144,18 +156,18 @@ class PaymentController extends Controller
         $status = $request->input('status');
         $cardType = $request->input('card_type');
 
-        $order = Order::where('order_number', $tranId)->first();
         $payment = Payment::where('transaction_id', $tranId)->latest()->first();
+        $order = $payment?->order;
 
-        if (!$order) {
-            return response()->json(['message' => 'Order not found.'], 404);
+        if (! $order) {
+            return response()->json(['message' => 'Payment transaction not found.'], 404);
         }
 
-        if ($order->payment_status === 'paid') {
+        if ($order->payment_status === 'paid' || $payment->status === 'paid') {
             return response()->json(['message' => 'IPN Processed: Already Paid']);
         }
 
-        if ($status === 'VALID' && $valId && $this->sslCommerz->validatePayment($valId)) {
+        if ($status === 'VALID' && $valId && $this->sslCommerz->validatePayment($valId, $tranId, $order->total_amount)) {
             DB::transaction(function () use ($order, $payment, $valId, $cardType, $request) {
                 if ($payment) {
                     $payment->update([
@@ -178,5 +190,10 @@ class PaymentController extends Controller
         }
 
         return response()->json(['message' => 'IPN Validation Failed'], 400);
+    }
+
+    private function frontendResultUrl(Order $order, string $result): string
+    {
+        return rtrim(config('app.frontend_url'), '/').'/order-result?order_id='.$order->id.'&payment='.$result;
     }
 }

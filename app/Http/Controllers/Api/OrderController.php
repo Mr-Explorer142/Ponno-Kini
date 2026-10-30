@@ -24,7 +24,6 @@ class OrderController extends Controller
         return OrderResource::collection($orders);
     }
 
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -32,7 +31,7 @@ class OrderController extends Controller
             'shipping_address.street' => 'required|string',
             'shipping_address.city' => 'required|string',
             'shipping_address.postal_code' => 'required|string',
-            'shipping_address.country' => 'required|string',
+            'shipping_address.country' => 'required|string|in:Bangladesh,BD',
             'shipping_address.phone' => 'required|string',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
@@ -62,11 +61,19 @@ class OrderController extends Controller
                 ];
             }
 
+            $deliveryCharge = strcasecmp(trim($validated['shipping_address']['city']), 'Dhaka') === 0
+                ? 70
+                : 120;
+            $totalAmount += $deliveryCharge;
+
+            $request->user()->update(['address' => $validated['shipping_address']]);
+
             // creating master order
             $order = Order::create([
                 'user_id' => $request->user()->id,
-                'order_number' => 'ORD-' . strtoupper(Str::random(10)),
+                'order_number' => 'ORD-'.strtoupper(Str::random(10)),
                 'total_amount' => $totalAmount,
+                'delivery_charge' => $deliveryCharge,
                 'status' => 'pending',
                 'payment_status' => 'pending',
                 'shipping_address' => $validated['shipping_address'],
@@ -85,7 +92,7 @@ class OrderController extends Controller
 
     public function show(Request $request, Order $order)
     {
-        if ($request->user()->cannot('view', $order) && !$request->user()->hasRole('admin') && $order->user_id !== $request->user()->id) {
+        if ($request->user()->cannot('view', $order) && ! $request->user()->hasRole('admin') && $order->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized access to order'], 403);
         }
 
@@ -106,10 +113,9 @@ class OrderController extends Controller
         ]);
     }
 
-
     public function downloadInvoice(Request $request, Order $order)
     {
-        if ($request->user()->cannot('view', $order) && !$request->user()->hasRole('admin') && $order->user_id !== $request->user()->id) {
+        if ($request->user()->cannot('view', $order) && ! $request->user()->hasRole('admin') && $order->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized access to invoice.'], 403);
         }
 
@@ -121,5 +127,4 @@ class OrderController extends Controller
 
         return $pdf->download("Invoice-{$order->order_number}.pdf");
     }
-
 }

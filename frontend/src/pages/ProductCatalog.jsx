@@ -46,7 +46,7 @@ function CatalogFilters({
             onSubmit={handleSearch}
             className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,2fr)_minmax(10rem,1fr)_repeat(2,minmax(7rem,0.7fr))_auto] lg:items-end"
         >
-            <label className="space-y-2 text-sm font-medium">
+            <label className="flex flex-col gap-2 text-sm font-medium">
                 Search products
                 <span className="relative block">
                     <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -60,7 +60,7 @@ function CatalogFilters({
                 </span>
             </label>
 
-            <label className="space-y-2 text-sm font-medium">
+            <label className="flex flex-col gap-2 text-sm font-medium">
                 Category
                 <select
                     value={searchParams.get("category_id") ?? ""}
@@ -78,7 +78,7 @@ function CatalogFilters({
                 </select>
             </label>
 
-            <label className="space-y-2 text-sm font-medium">
+            <label className="flex flex-col gap-2 text-sm font-medium">
                 Min price
                 <Input
                     type="number"
@@ -88,7 +88,7 @@ function CatalogFilters({
                     placeholder="৳0"
                 />
             </label>
-            <label className="space-y-2 text-sm font-medium">
+            <label className="flex flex-col gap-2 text-sm font-medium">
                 Max price
                 <Input
                     type="number"

@@ -11,7 +11,9 @@ import VerifyEmail from "./pages/VerifyEmail";
 import Home from "./pages/Home";
 import ProductCatalog from "./pages/ProductCatalog";
 import ProductDetail from "./pages/ProductDetail";
-import Navbar from "./components/Navbar";
+import Cart from "./pages/Cart";
+import OrderResult from "./pages/OrderResult";
+import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import { useAuthStore } from "./store/useAuthStore";
 
@@ -59,11 +61,13 @@ function App() {
                     <Route path="/" element={<Home />} />
                     <Route path="/products" element={<ProductCatalog />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/cart" element={<Cart />} />
 
                     {/* Protected routes */}
                     <Route element={<ProtectedRoute />}>
                         <Route path="/verify-email" element={<VerifyEmail />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/order-result" element={<OrderResult />} />
                     </Route>
 
                     {/* 404 */}

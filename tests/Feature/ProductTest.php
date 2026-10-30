@@ -5,6 +5,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 
@@ -22,6 +23,22 @@ it('allows public users to list products', function () {
         ->and($response->json('meta.last_page'))->toBe(3)
         ->and($secondPage->json('data'))->toHaveCount(16)
         ->and($thirdPage->json('data'))->toHaveCount(1);
+});
+
+it('loads product details from the database instead of stale cached model data', function () {
+    $category = Category::factory()->create();
+    $product = Product::factory()->create([
+        'category_id' => $category->id,
+        'name' => 'First catalog product',
+    ]);
+
+    Cache::put("products.show.{$product->id}", ['id' => 999], 3600);
+
+    $response = $this->getJson("/api/product/{$product->id}");
+
+    $response->assertOk()
+        ->assertJsonPath('data.id', $product->id)
+        ->assertJsonPath('data.name', 'First catalog product');
 });
 
 it('returns Gemini-selected recommendations for a product without recommending itself', function () {

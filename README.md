@@ -19,8 +19,10 @@ invoices, and AI tools powered by Google Gemini. The core business rules are cov
     - Cached product listings with version-based cache invalidation (works with the file, database or Redis cache
       drivers)
 - **Orders & payments**
-    - Order totals are calculated from database prices, so client-submitted prices are ignored
-    - Checkout integrated with SSLCommerz, plus background notifications
+    - Persistent shopping cart and checkout with reusable Bangladesh customer addresses
+    - Order totals are calculated from database prices, with ৳70 Dhaka and ৳120 outside-Dhaka delivery
+    - SSLCommerz payment checkout, payment confirmation, processing order status, and background notifications
+    - Downloadable order invoices
 - **Reviews & Q&A**
     - Verified-purchase-only product reviews
     - Customer/admin Q&A threads
@@ -105,7 +107,10 @@ MAIL_USERNAME=your_mailtrap_username
 MAIL_PASSWORD=your_mailtrap_password
 
 # SSLCommerz sandbox credentials
-# (add your SSLCommerz variables here)
+SSLCOMMERZ_STORE_ID=your_store_id
+SSLCOMMERZ_STORE_PASSWORD=your_store_password
+SSLCOMMERZ_IS_SANDBOX=true
+FRONTEND_URL=http://localhost:5173
 ```
 
 Never commit your `.env` file or any API secret.

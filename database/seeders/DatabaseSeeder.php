@@ -5,8 +5,10 @@ namespace Database\Seeders;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
+use Database\Factories\BangladeshAddressFactory;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
@@ -33,6 +35,19 @@ class DatabaseSeeder extends Seeder
         );
 
         $admin->assignRole($adminRole);
+
+        foreach (BangladeshAddressFactory::examples() as $index => $address) {
+            $customer = User::firstOrCreate(
+                ['email' => 'sample-customer-'.($index + 1).'@example.com'],
+                [
+                    'name' => 'Sample Customer '.($index + 1),
+                    'password' => Str::random(48),
+                    'email_verified_at' => now(),
+                    'address' => $address,
+                ],
+            );
+            $customer->assignRole($customerRole);
+        }
 
         // 3. Seeding data
         Category::factory()->count(5)->create()->each(function ($category) {

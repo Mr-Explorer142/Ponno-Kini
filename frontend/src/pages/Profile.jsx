@@ -231,7 +231,11 @@ export default function Profile() {
             </CardContent>
 
             <CardFooter className="flex flex-col items-stretch gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-                <Button asChild variant="outline" className="w-full sm:w-auto">
+                <Button
+                    asChild
+                    variant="outline"
+                    className="w-full gap-2 px-4 sm:w-auto"
+                >
                     <Link to="/products">Continue shopping</Link>
                 </Button>
                 <Button

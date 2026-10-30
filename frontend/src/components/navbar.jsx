@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { LogOut, Menu, Moon, ShoppingBag, Sun, User, X } from "lucide-react";
+import {
+    LogOut,
+    Menu,
+    Moon,
+    ShoppingBag,
+    ShoppingCart,
+    Sun,
+    User,
+    X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useCartStore } from "@/store/useCartStore";
 
 function ThemeToggle({ theme, onToggleTheme, showLabel = false }) {
     const isDark = theme === "dark";
@@ -28,6 +38,9 @@ function ThemeToggle({ theme, onToggleTheme, showLabel = false }) {
 
 export default function Navbar({ theme, onToggleTheme }) {
     const { isAuthenticated, user, logout } = useAuthStore();
+    const cartCount = useCartStore((state) =>
+        state.items.reduce((total, item) => total + item.quantity, 0),
+    );
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuButtonRef = useRef(null);
@@ -94,6 +107,19 @@ export default function Navbar({ theme, onToggleTheme }) {
                 <nav className="hidden items-center gap-2 lg:flex">
                     <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
                     <Button asChild variant="ghost">
+                        <Link to="/cart"                             className="inline-flex items-center gap-2" aria-label={`Cart, ${cartCount} items`}>
+                            <span className="relative">
+                                <ShoppingCart aria-hidden="true" />
+                                {cartCount > 0 && (
+                                    <span className="absolute -top-2 -right-3 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                                        {cartCount > 99 ? "99+" : cartCount}
+                                    </span>
+                                )}
+                            </span>
+                            Cart
+                        </Link>
+                    </Button>
+                    <Button asChild variant="ghost">
                         <Link
                             to="/products"
                             className="inline-flex items-center gap-2"
@@ -141,19 +167,32 @@ export default function Navbar({ theme, onToggleTheme }) {
                     )}
                 </nav>
 
-                <Button
-                    ref={menuButtonRef}
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="lg:hidden"
-                    aria-label="Open navigation menu"
-                    aria-expanded={menuOpen}
-                    aria-controls="mobile-navigation"
-                    onClick={() => setMenuOpen(true)}
-                >
-                    <Menu aria-hidden="true" />
-                </Button>
+                <div className="flex items-center gap-1 lg:hidden">
+                    <Button asChild variant="ghost" size="icon">
+                        <Link to="/cart" aria-label={`Cart, ${cartCount} items`}>
+                            <span className="relative">
+                                <ShoppingCart aria-hidden="true" />
+                                {cartCount > 0 && (
+                                    <span className="absolute -top-2 -right-3 flex size-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                                        {cartCount > 99 ? "99+" : cartCount}
+                                    </span>
+                                )}
+                            </span>
+                        </Link>
+                    </Button>
+                    <Button
+                        ref={menuButtonRef}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Open navigation menu"
+                        aria-expanded={menuOpen}
+                        aria-controls="mobile-navigation"
+                        onClick={() => setMenuOpen(true)}
+                    >
+                        <Menu aria-hidden="true" />
+                    </Button>
+                </div>
             </div>
 
             {menuOpen && (
@@ -194,6 +233,20 @@ export default function Navbar({ theme, onToggleTheme }) {
                         </div>
 
                         <div className="flex flex-col items-stretch gap-2">
+                            <Button
+                                asChild
+                                variant="ghost"
+                                className="justify-start"
+                            >
+                                <Link
+                                    to="/cart"
+                                    className="inline-flex items-center gap-2"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    <ShoppingCart aria-hidden="true" />
+                                    Cart ({cartCount})
+                                </Link>
+                            </Button>
                             <ThemeToggle
                                 theme={theme}
                                 onToggleTheme={onToggleTheme}

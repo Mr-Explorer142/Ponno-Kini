@@ -14,19 +14,15 @@ class OrderFactory extends Factory
 {
     public function definition(): array
     {
+        $address = fake()->randomElement(BangladeshAddressFactory::examples());
+
         return [
             'user_id' => User::factory(),
-            'order_number' => 'ORD-' . strtoupper(Str::random(8)),
+            'order_number' => 'ORD-'.strtoupper(Str::random(8)),
             'status' => 'pending',
             'payment_status' => 'pending',
             'total_amount' => 0,
-            'shipping_address' => [
-                'street' => fake()->streetAddress(),
-                'city' => 'Dhaka',
-                'postal_code' => '1000',
-                'country' => 'BD',
-                'phone' => '01700000000',
-            ],
+            'shipping_address' => $address,
         ];
     }
 }

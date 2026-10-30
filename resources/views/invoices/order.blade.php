@@ -85,6 +85,10 @@
             <td class="text-right">BDT {{ number_format($item->subtotal, 2) }}</td>
         </tr>
     @endforeach
+    <tr>
+        <td colspan="3" class="text-right">Delivery</td>
+        <td class="text-right">BDT {{ number_format($order->delivery_charge, 2) }}</td>
+    </tr>
     <tr class="total-row">
         <td colspan="3" class="text-right">Total Amount</td>
         <td class="text-right">BDT {{ number_format($order->total_amount, 2) }}</td>

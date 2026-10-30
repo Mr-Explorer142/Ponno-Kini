@@ -8,6 +8,7 @@ import {
     Star,
 } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
+import AddToCartButton from "@/components/AddToCartButton";
 import { Button } from "@/components/ui/button";
 import api from "@/api/axios";
 
@@ -139,8 +140,8 @@ export default function ProductDetail() {
                 <p role="alert" className="mt-3 text-muted-foreground">
                     {error || "This product could not be found."}
                 </p>
-                <Button asChild className="mt-6">
-                    <Link to="/products">
+                <Button asChild className="mt-6 gap-2 px-4">
+                    <Link to="/products" className="inline-flex items-center gap-2">
                         <ArrowLeft aria-hidden="true" />
                         Back to catalog
                     </Link>
@@ -153,7 +154,7 @@ export default function ProductDetail() {
         <div className="space-y-14 pb-10">
             <Link
                 to="/products"
-                className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-primary"
+                className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
             >
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 Back to catalog
@@ -162,7 +163,7 @@ export default function ProductDetail() {
             <section className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
                 <ProductImage key={product.id} product={product} />
 
-                <div className="space-y-5 lg:py-4">
+                <div className="flex flex-row flex-wrap items-center gap-3 lg:py-4">
                     {product.category?.name && (
                         <p className="text-sm font-semibold tracking-wide text-primary uppercase">
                             {product.category.name}
@@ -195,8 +196,17 @@ export default function ProductDetail() {
                             {product.description}
                         </p>
                     </div>
-                    <Button asChild size="lg">
-                        <Link to="/products">
+                    <AddToCartButton product={product} size="lg" />
+                    <Button
+                        asChild
+                        size="lg"
+                        variant="outline"
+                        className="gap-2 px-4"
+                    >
+                        <Link
+                            to="/products"
+                            className="inline-flex items-center gap-2"
+                        >
                             <ShoppingBag aria-hidden="true" />
                             Continue shopping
                         </Link>
