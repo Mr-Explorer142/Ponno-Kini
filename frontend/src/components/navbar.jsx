@@ -161,7 +161,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                     <button
                         type="button"
                         aria-label="Close navigation menu"
-                        className="absolute inset-0 size-full cursor-default bg-black/40"
+                        className="absolute inset-0 size-full cursor-pointer bg-black/40"
                         onClick={() => setMenuOpen(false)}
                     />
                     <nav

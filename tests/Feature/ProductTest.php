@@ -5,16 +5,51 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 use Laravel\Sanctum\Sanctum;
 
 it('allows public users to list products', function () {
     $category = Category::factory()->create();
-    Product::factory(3)->create(['category_id' => $category->id]);
+    Product::factory(33)->create(['category_id' => $category->id]);
 
     $response = $this->getJson('/api/products');
+    $secondPage = $this->getJson('/api/products?page=2');
+    $thirdPage = $this->getJson('/api/products?page=3');
 
     expect($response->status())->toBe(200)
-        ->and($response->json('data'))->toHaveCount(3);
+        ->and($response->json('data'))->toHaveCount(16)
+        ->and($response->json('meta.per_page'))->toBe(16)
+        ->and($response->json('meta.last_page'))->toBe(3)
+        ->and($secondPage->json('data'))->toHaveCount(16)
+        ->and($thirdPage->json('data'))->toHaveCount(1);
+});
+
+it('returns Gemini-selected recommendations for a product without recommending itself', function () {
+    $category = Category::factory()->create();
+    $product = Product::factory()->create(['category_id' => $category->id]);
+    $recommended = Product::factory()->create(['category_id' => $category->id]);
+    Product::factory()->create(['category_id' => $category->id]);
+    config(['services.gemini.key' => 'test-key']);
+
+    Http::fake([
+        'generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [[
+                'content' => [
+                    'parts' => [[
+                        'text' => json_encode([
+                            'product_ids' => [$product->id, $recommended->id],
+                        ]),
+                    ]],
+                ],
+            ]],
+        ]),
+    ]);
+
+    $response = $this->postJson("/api/products/{$product->id}/recommendations");
+
+    expect($response->status())->toBe(200)
+        ->and($response->json('data'))->toHaveCount(1)
+        ->and($response->json('data.0.id'))->toBe($recommended->id);
 });
 
 it('ranks best sellers by quantities in paid orders only', function () {
@@ -55,9 +90,9 @@ it('blocks a customer from creating a product', function () {
     Sanctum::actingAs($customer);
 
     $response = $this->postJson('/api/products', [
-        'name'        => 'Hacked Product',
+        'name' => 'Hacked Product',
         'description' => 'Test',
-        'price'       => 1000,
+        'price' => 1000,
         'category_id' => 1,
     ]);
 
@@ -70,9 +105,9 @@ it('allows an admin to create a product', function () {
     Sanctum::actingAs($admin);
 
     $response = $this->postJson('/api/products', [
-        'name'        => 'Mechanical Keyboard',
+        'name' => 'Mechanical Keyboard',
         'description' => 'A great keyboard',
-        'price'       => 12000,
+        'price' => 12000,
         'category_id' => $category->id,
     ]);
 

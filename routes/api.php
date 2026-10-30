@@ -37,6 +37,7 @@ Route::middleware('throttle:api-general')->group(function () {
 
     // Product Recommendations
     Route::post('/cart/recommendations', [RecommendationController::class, 'getCartRecommendations']);
+    Route::post('/products/{product}/recommendations', [RecommendationController::class, 'getProductRecommendations']);
 });
 
 // SSLCommerz Gate Callbacks & IPN Webhook (Public POST Endpoints)

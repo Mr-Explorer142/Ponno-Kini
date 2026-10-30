@@ -14,6 +14,7 @@ use Illuminate\Support\Str;
 class ProductController extends Controller
 {
     private const LIST_VERSION_KEY = 'products.list.version';
+    private const PER_PAGE = 16;
 
     public function index(Request $request)
     {
@@ -22,7 +23,7 @@ class ProductController extends Controller
         // 1. Unique cache key per query string, tied to the current list version.
         //    Bumping the version (see clearProductCache) invalidates every cached list at once.
         $queryString = http_build_query($request->query());
-        $cacheKey = 'products.list.v' . $this->listVersion() . '.' . md5($queryString);
+        $cacheKey = 'products.list.v' . $this->listVersion() . '.per' . self::PER_PAGE . '.' . md5($queryString);
 
         $isBestSellerRequest = $request->query('sort') === 'best_selling';
         $isCacheHit = !$isBestSellerRequest && Cache::has($cacheKey);
@@ -64,7 +65,7 @@ class ProductController extends Controller
                 }, function ($query) {
                     $query->latest();
                 })
-                ->paginate(15)
+                ->paginate(self::PER_PAGE)
                 ->withQueryString();
 
             return [

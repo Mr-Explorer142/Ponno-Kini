@@ -9,11 +9,12 @@ import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import VerifyEmail from "./pages/VerifyEmail";
 import Home from "./pages/Home";
+import ProductCatalog from "./pages/ProductCatalog";
+import ProductDetail from "./pages/ProductDetail";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import { useAuthStore } from "./store/useAuthStore";
 
-// Initial dummy pages
 const Page = ({ title }) => <h1 className="text-3xl font-bold">{title}</h1>;
 
 function App() {
@@ -56,14 +57,8 @@ function App() {
 
                     {/* Public catalog routes */}
                     <Route path="/" element={<Home />} />
-                    <Route
-                        path="/products"
-                        element={<Page title="Product Catalog" />}
-                    />
-                    <Route
-                        path="/products/:id"
-                        element={<Page title="Single Product View" />}
-                    />
+                    <Route path="/products" element={<ProductCatalog />} />
+                    <Route path="/products/:id" element={<ProductDetail />} />
 
                     {/* Protected routes */}
                     <Route element={<ProtectedRoute />}>
