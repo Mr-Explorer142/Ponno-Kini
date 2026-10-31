@@ -12,6 +12,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import api from "@/api/axios";
+import { t } from "@/i18n";
 
 export default function ResetPassword() {
     const [searchParams] = useSearchParams();
@@ -66,16 +67,15 @@ export default function ResetPassword() {
             <Card className="mx-auto mt-10 w-full max-w-md border-orange-200">
                 <CardHeader>
                     <CardTitle className="text-2xl">
-                        Invalid reset link
+                        {t("Invalid reset link")}
                     </CardTitle>
                     <CardDescription>
-                        This link is missing information or has expired. Request
-                        a new one to continue.
+                        {t("This link is missing information or has expired. Request a new one to continue.")}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Button asChild className="w-full">
-                        <Link to="/forgot-password">Request a new link</Link>
+                        <Link to="/forgot-password">{t("Request a new link")}</Link>
                     </Button>
                 </CardContent>
             </Card>
@@ -85,11 +85,9 @@ export default function ResetPassword() {
     return (
         <Card className="mx-auto mt-10 w-full max-w-md border-orange-200">
             <CardHeader>
-                <CardTitle className="text-2xl">Reset password</CardTitle>
+                <CardTitle className="text-2xl">{t("Reset password")}</CardTitle>
                 <CardDescription>
-                    Choose a new password for{" "}
-                    <span className="font-medium text-foreground">{email}</span>
-                    .
+                    {t("Choose a new password for :email.", { email })}
                 </CardDescription>
             </CardHeader>
 
@@ -97,24 +95,24 @@ export default function ResetPassword() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {error && (
                         <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-                            {error}{" "}
+                            {t(error)}{" "}
                             {error.toLowerCase().includes("token") && (
                                 <Link
                                     to="/forgot-password"
                                     className="font-medium underline"
                                 >
-                                    Request a new link
+                                    {t("Request a new link")}
                                 </Link>
                             )}
                         </p>
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor="password">New password</Label>
+                        <Label htmlFor="password">{t("New password")}</Label>
                         <Input
                             id="password"
                             type="password"
-                            placeholder="At least 8 characters"
+                            placeholder={t("At least 8 characters")}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             minLength={8}
@@ -124,7 +122,7 @@ export default function ResetPassword() {
 
                     <div className="space-y-2">
                         <Label htmlFor="password_confirmation">
-                            Confirm new password
+                            {t("Confirm new password")}
                         </Label>
                         <Input
                             id="password_confirmation"
@@ -140,7 +138,7 @@ export default function ResetPassword() {
 
                     <Button type="submit" className="w-full" disabled={loading}>
                         {loading && <LoaderCircle className="animate-spin" />}
-                        Reset password
+                        {t("Reset password")}
                     </Button>
                 </form>
             </CardContent>

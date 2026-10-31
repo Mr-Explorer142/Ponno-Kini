@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Check, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
+import { t } from "@/i18n";
 
 export default function AddToCartButton({
     product,
@@ -29,7 +30,7 @@ export default function AddToCartButton({
             ) : (
                 <ShoppingCart aria-hidden="true" />
             )}
-            {added ? "Added to cart" : "Add to Cart"}
+            {t(added ? "Added to cart" : "Add to Cart")}
         </Button>
     );
 }

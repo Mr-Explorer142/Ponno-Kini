@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import api from "@/api/axios";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
+import { getIntlLocale, t } from "@/i18n";
 
 const formatPrice = (price) =>
-    `৳${new Intl.NumberFormat("en-BD").format(Number(price) || 0)}`;
+    `৳${new Intl.NumberFormat(getIntlLocale()).format(Number(price) || 0)}`;
 
 const emptyAddress = {
     street: "",
@@ -82,12 +83,12 @@ export default function Cart() {
         return (
             <section className="mx-auto max-w-2xl py-16 text-center">
                 <ShoppingBag className="mx-auto size-12 text-primary" />
-                <h1 className="mt-4 text-3xl font-bold">Your cart is empty</h1>
+                <h1 className="mt-4 text-3xl font-bold">{t("Your cart is empty")}</h1>
                 <p className="mt-2 text-muted-foreground">
-                    Add a few products before heading to checkout.
+                    {t("Add a few products before heading to checkout.")}
                 </p>
                 <Button asChild className="mt-6 gap-2 px-4">
-                    <Link to="/products">Continue shopping</Link>
+                    <Link to="/products">{t("Continue shopping")}</Link>
                 </Button>
             </section>
         );
@@ -97,16 +98,16 @@ export default function Cart() {
         <div className="mx-auto max-w-5xl space-y-8 pb-10">
             <header>
                 <p className="text-sm font-semibold tracking-wide text-primary uppercase">
-                    Checkout
+                    {t("Checkout")}
                 </p>
                 <h1 className="mt-1 text-3xl font-bold tracking-tight">
-                    Your cart
+                    {t("Your cart")}
                 </h1>
             </header>
 
             <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,1fr)]">
                 <section
-                    aria-label="Cart items"
+                    aria-label={t("Cart items")}
                     className="divide-y divide-border rounded-2xl border border-border bg-card"
                 >
                     {items.map(({ product, quantity }) => (
@@ -131,7 +132,7 @@ export default function Cart() {
                                     {product.name}
                                 </Link>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    {formatPrice(product.price)} each
+                                    {formatPrice(product.price)} {t("each")}
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
@@ -139,7 +140,9 @@ export default function Cart() {
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    aria-label={`Decrease ${product.name} quantity`}
+                                    aria-label={t("Decrease :product quantity", {
+                                        product: product.name,
+                                    })}
                                     onClick={() =>
                                         updateQuantity(product.id, quantity - 1)
                                     }
@@ -151,7 +154,9 @@ export default function Cart() {
                                     min="1"
                                     max="99"
                                     value={quantity}
-                                    aria-label={`${product.name} quantity`}
+                                    aria-label={t(":product quantity", {
+                                        product: product.name,
+                                    })}
                                     className="w-16 text-center"
                                     onChange={(event) =>
                                         updateQuantity(
@@ -170,7 +175,9 @@ export default function Cart() {
                                     type="button"
                                     variant="outline"
                                     size="icon"
-                                    aria-label={`Increase ${product.name} quantity`}
+                                    aria-label={t("Increase :product quantity", {
+                                        product: product.name,
+                                    })}
                                     disabled={quantity >= 99}
                                     onClick={() =>
                                         updateQuantity(product.id, quantity + 1)
@@ -186,7 +193,9 @@ export default function Cart() {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                aria-label={`Remove ${product.name}`}
+                                aria-label={t("Remove :product", {
+                                    product: product.name,
+                                })}
                                 onClick={() => removeItem(product.id)}
                             >
                                 <Trash2 aria-hidden="true" />
@@ -201,38 +210,38 @@ export default function Cart() {
                 >
                     <div>
                         <h2 className="text-xl font-semibold">
-                            Delivery details
+                            {t("Delivery details")}
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            We currently deliver within Bangladesh.
+                            {t("We currently deliver within Bangladesh.")}
                         </p>
                     </div>
 
                     <label className="block space-y-2 text-sm font-medium">
-                        Street address
+                        {t("Street address")}
                         <Input
                             name="street"
                             value={address.street}
                             onChange={updateAddress}
-                            placeholder="House, road, area (e.g. Uttara)"
+                            placeholder={t("House, road, area (e.g. Uttara)")}
                             autoComplete="street-address"
                             required
                         />
                     </label>
                     <div className="grid grid-cols-2 gap-3">
                         <label className="block space-y-2 text-sm font-medium">
-                            City / district
+                            {t("City / district")}
                             <Input
                                 name="city"
                                 value={address.city}
                                 onChange={updateAddress}
-                                placeholder="Dhaka or Madaripur"
+                                placeholder={t("Dhaka or Madaripur")}
                                 autoComplete="address-level2"
                                 required
                             />
                         </label>
                         <label className="block space-y-2 text-sm font-medium">
-                            Postal code
+                            {t("Postal code")}
                             <Input
                                 name="postal_code"
                                 value={address.postal_code}
@@ -244,7 +253,7 @@ export default function Cart() {
                         </label>
                     </div>
                     <label className="block space-y-2 text-sm font-medium">
-                        Phone
+                        {t("Phone")}
                         <Input
                             name="phone"
                             type="tel"
@@ -259,33 +268,33 @@ export default function Cart() {
                     <div className="space-y-2 border-t border-border pt-4 text-sm">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">
-                                Subtotal
+                                {t("Subtotal")}
                             </span>
                             <span>{formatPrice(subtotal)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">
-                                Delivery{" "}
+                                {t("Delivery")}{" "}
                                 {address.city.trim().toLowerCase() === "dhaka"
-                                    ? "(inside Dhaka)"
-                                    : "(outside Dhaka)"}
+                                    ? t("inside Dhaka")
+                                    : t("outside Dhaka")}
                             </span>
                             <span>{formatPrice(deliveryCharge)}</span>
                         </div>
                         <div className="flex justify-between border-t border-border pt-3 text-base font-bold">
-                            <span>Total</span>
+                            <span>{t("Total")}</span>
                             <span>{formatPrice(total)}</span>
                         </div>
                     </div>
 
                     {!isAuthenticated ? (
                         <Button asChild className="w-full">
-                            <Link to="/login">Log in to continue to payment</Link>
+                            <Link to="/login">{t("Log in to continue to payment")}</Link>
                         </Button>
                     ) : !user?.email_verified_at ? (
                         <Button asChild className="w-full">
                             <Link to="/verify-email">
-                                Verify email to continue
+                                {t("Verify email to continue")}
                             </Link>
                         </Button>
                     ) : (
@@ -295,8 +304,8 @@ export default function Cart() {
                             disabled={submitting}
                         >
                             {submitting
-                                ? "Connecting to payment..."
-                                : "Proceed to payment"}
+                                ? t("Connecting to payment...")
+                                : t("Proceed to payment")}
                         </Button>
                     )}
 
@@ -305,7 +314,7 @@ export default function Cart() {
                             role="alert"
                             className="text-sm text-destructive"
                         >
-                            {error}
+                            {t(error)}
                         </p>
                     )}
                 </form>

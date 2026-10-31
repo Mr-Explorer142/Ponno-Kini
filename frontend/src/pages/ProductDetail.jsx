@@ -11,9 +11,10 @@ import ProductCard from "@/components/ProductCard";
 import AddToCartButton from "@/components/AddToCartButton";
 import { Button } from "@/components/ui/button";
 import api from "@/api/axios";
+import { getIntlLocale, t } from "@/i18n";
 
 const formatPrice = (price) =>
-    `৳${new Intl.NumberFormat("en-BD").format(Number(price) || 0)}`;
+    `৳${new Intl.NumberFormat(getIntlLocale()).format(Number(price) || 0)}`;
 
 function ProductImage({ product }) {
     const [imageFailed, setImageFailed] = useState(false);
@@ -136,14 +137,14 @@ export default function ProductDetail() {
     if (error || !product) {
         return (
             <div className="mx-auto max-w-2xl py-16 text-center">
-                <h1 className="text-2xl font-bold">Product unavailable</h1>
+                <h1 className="text-2xl font-bold">{t("Product unavailable")}</h1>
                 <p role="alert" className="mt-3 text-muted-foreground">
-                    {error || "This product could not be found."}
+                    {t(error || "This product could not be found.")}
                 </p>
                 <Button asChild className="mt-6 gap-2 px-4">
                     <Link to="/products" className="inline-flex items-center gap-2">
                         <ArrowLeft aria-hidden="true" />
-                        Back to catalog
+                        {t("Back to catalog")}
                     </Link>
                 </Button>
             </div>
@@ -157,7 +158,7 @@ export default function ProductDetail() {
                 className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
             >
                 <ArrowLeft className="size-4" aria-hidden="true" />
-                Back to catalog
+                {t("Back to catalog")}
             </Link>
 
             <section className="grid items-start gap-8 lg:grid-cols-2 lg:gap-12">
@@ -166,7 +167,7 @@ export default function ProductDetail() {
                 <div className="flex flex-row flex-wrap items-center gap-3 lg:py-4">
                     {product.category?.name && (
                         <p className="text-sm font-semibold tracking-wide text-primary uppercase">
-                            {product.category.name}
+                            {t(product.category.name)}
                         </p>
                     )}
                     <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -184,13 +185,15 @@ export default function ProductDetail() {
                                 />
                                 {Number(product.average_rating).toFixed(1)}
                                 {product.reviews?.length > 0 &&
-                                    ` (${product.reviews.length} reviews)`}
+                                    ` (${t(":count reviews", {
+                                        count: product.reviews.length,
+                                    })})`}
                             </span>
                         )}
                     </div>
                     <div className="border-t border-border pt-5">
                         <h2 className="mb-2 text-lg font-semibold">
-                            Product details
+                            {t("Product details")}
                         </h2>
                         <p className="leading-relaxed whitespace-pre-line text-muted-foreground">
                             {product.description}
@@ -208,7 +211,7 @@ export default function ProductDetail() {
                             className="inline-flex items-center gap-2"
                         >
                             <ShoppingBag aria-hidden="true" />
-                            Continue shopping
+                            {t("Continue shopping")}
                         </Link>
                     </Button>
                 </div>
@@ -225,10 +228,10 @@ export default function ProductDetail() {
                             id="recommendations-heading"
                             className="text-2xl font-bold tracking-tight"
                         >
-                            You might also like
+                            {t("You might also like")}
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Relevant picks selected for this product.
+                            {t("Relevant picks selected for this product.")}
                         </p>
                     </div>
                 </div>
@@ -259,7 +262,7 @@ export default function ProductDetail() {
                     </div>
                 ) : (
                     <p className="rounded-xl border border-border bg-card p-4 text-sm text-muted-foreground">
-                        There are no related products to show right now.
+                        {t("There are no related products to show right now.")}
                     </p>
                 )}
             </section>

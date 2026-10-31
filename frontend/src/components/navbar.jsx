@@ -13,11 +13,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
+import { t } from "@/i18n";
 
 function ThemeToggle({ theme, onToggleTheme, showLabel = false }) {
     const isDark = theme === "dark";
     const Icon = isDark ? Sun : Moon;
-    const label = isDark ? "Switch to light mode" : "Switch to dark mode";
+    const label = t(isDark ? "Switch to light mode" : "Switch to dark mode");
 
     return (
         <Button
@@ -31,7 +32,7 @@ function ThemeToggle({ theme, onToggleTheme, showLabel = false }) {
             onClick={onToggleTheme}
         >
             <Icon aria-hidden="true" />
-            {showLabel && (isDark ? "Light mode" : "Dark mode")}
+            {showLabel && t(isDark ? "Light mode" : "Dark mode")}
         </Button>
     );
 }
@@ -110,7 +111,13 @@ export default function Navbar({ theme, onToggleTheme }) {
                 <nav className="hidden items-center gap-2 lg:flex">
                     <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
                     <Button asChild variant="ghost">
-                        <Link to="/cart"                             className="inline-flex items-center gap-2" aria-label={`Cart, ${cartCount} items`}>
+                        <Link
+                            to="/cart"
+                            className="inline-flex items-center gap-2"
+                            aria-label={t("Cart, :count items", {
+                                count: cartCount,
+                            })}
+                        >
                             <span className="relative">
                                 <ShoppingCart aria-hidden="true" />
                                 {cartCount > 0 && (
@@ -119,7 +126,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                     </span>
                                 )}
                             </span>
-                            Cart
+                            {t("Cart")}
                         </Link>
                     </Button>
                     <Button asChild variant="ghost">
@@ -128,7 +135,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                             className="inline-flex items-center gap-2"
                         >
                             <ShoppingBag aria-hidden="true" />
-                            Catalog
+                            {t("Catalog")}
                         </Link>
                     </Button>
 
@@ -147,13 +154,13 @@ export default function Navbar({ theme, onToggleTheme }) {
                                 >
                                     <User />
                                     <span className="break-all">
-                                        {user?.name ?? "Profile"}
+                                        {user?.name ?? t("Profile")}
                                     </span>
                                 </Button>
                                 {accountMenuOpen && (
                                     <div
                                         role="menu"
-                                        aria-label="Account options"
+                                        aria-label={t("Account options")}
                                         className="absolute right-0 top-full z-20 mt-1 min-w-40 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg"
                                     >
                                         <Link
@@ -164,7 +171,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                                 setAccountMenuOpen(false)
                                             }
                                         >
-                                            Profile
+                                            {t("Profile")}
                                         </Link>
                                         <Link
                                             role="menuitem"
@@ -174,7 +181,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                                 setAccountMenuOpen(false)
                                             }
                                         >
-                                            Orders
+                                            {t("Orders")}
                                         </Link>
                                     </div>
                                 )}
@@ -185,16 +192,16 @@ export default function Navbar({ theme, onToggleTheme }) {
                                 onClick={handleLogout}
                             >
                                 <LogOut aria-hidden="true" />
-                                Logout
+                                {t("Logout")}
                             </Button>
                         </>
                     ) : (
                         <>
                             <Button asChild variant="ghost">
-                                <Link to="/login">Log in</Link>
+                                <Link to="/login">{t("Log in")}</Link>
                             </Button>
                             <Button asChild>
-                                <Link to="/register">Sign Up</Link>
+                                <Link to="/register">{t("Sign Up")}</Link>
                             </Button>
                         </>
                     )}
@@ -202,7 +209,12 @@ export default function Navbar({ theme, onToggleTheme }) {
 
                 <div className="flex items-center gap-1 lg:hidden">
                     <Button asChild variant="ghost" size="icon">
-                        <Link to="/cart" aria-label={`Cart, ${cartCount} items`}>
+                        <Link
+                            to="/cart"
+                            aria-label={t("Cart, :count items", {
+                                count: cartCount,
+                            })}
+                        >
                             <span className="relative">
                                 <ShoppingCart aria-hidden="true" />
                                 {cartCount > 0 && (
@@ -218,7 +230,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        aria-label="Open navigation menu"
+                        aria-label={t("Open navigation menu")}
                         aria-expanded={menuOpen}
                         aria-controls="mobile-navigation"
                         onClick={() => setMenuOpen(true)}
@@ -232,7 +244,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                 <div className="fixed inset-0 z-50 lg:hidden">
                     <button
                         type="button"
-                        aria-label="Close navigation menu"
+                        aria-label={t("Close navigation menu")}
                         className="absolute inset-0 size-full cursor-pointer bg-black/40"
                         onClick={() => setMenuOpen(false)}
                     />
@@ -241,7 +253,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                         id="mobile-navigation"
                         role="dialog"
                         aria-modal="true"
-                        aria-label="Navigation menu"
+                        aria-label={t("Navigation menu")}
                         onKeyDown={handleDrawerKeyDown}
                         className="absolute inset-y-0 right-0 flex w-[min(20rem,85vw)] flex-col gap-4 overflow-y-auto border-l border-border bg-background p-5 shadow-xl"
                     >
@@ -258,7 +270,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                aria-label="Close navigation menu"
+                                aria-label={t("Close navigation menu")}
                                 onClick={() => setMenuOpen(false)}
                             >
                                 <X aria-hidden="true" />
@@ -277,7 +289,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                     onClick={() => setMenuOpen(false)}
                                 >
                                     <ShoppingCart aria-hidden="true" />
-                                    Cart ({cartCount})
+                                    {t("Cart")} ({cartCount})
                                 </Link>
                             </Button>
                             <ThemeToggle
@@ -296,7 +308,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                     onClick={() => setMenuOpen(false)}
                                 >
                                     <ShoppingBag aria-hidden="true" />
-                                    Catalog
+                                    {t("Catalog")}
                                 </Link>
                             </Button>
 
@@ -320,7 +332,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                     {accountMenuOpen && (
                                         <div
                                             role="menu"
-                                            aria-label="Account options"
+                                            aria-label={t("Account options")}
                                             className="ml-4 flex flex-col border-l border-border pl-3"
                                         >
                                             <Link
@@ -332,7 +344,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                                     setMenuOpen(false);
                                                 }}
                                             >
-                                                Profile
+                                                {t("Profile")}
                                             </Link>
                                             <Link
                                                 role="menuitem"
@@ -343,7 +355,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                                     setMenuOpen(false);
                                                 }}
                                             >
-                                                Orders
+                                                {t("Orders")}
                                             </Link>
                                         </div>
                                     )}
@@ -354,7 +366,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                         onClick={handleLogout}
                                     >
                                         <LogOut aria-hidden="true" />
-                                        Logout
+                                        {t("Logout")}
                                     </Button>
                                 </>
                             ) : (
@@ -368,7 +380,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                             to="/login"
                                             onClick={() => setMenuOpen(false)}
                                         >
-                                            Log in
+                                            {t("Log in")}
                                         </Link>
                                     </Button>
                                     <Button asChild className="justify-start">
@@ -376,7 +388,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                                             to="/register"
                                             onClick={() => setMenuOpen(false)}
                                         >
-                                            Sign Up
+                                            {t("Sign Up")}
                                         </Link>
                                     </Button>
                                 </>

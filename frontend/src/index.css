@@ -129,6 +129,10 @@
     }
 }
 
+html[data-language="bn"] {
+    font-family: "Noto Sans Bengali", "Noto Sans", sans-serif;
+}
+
 /* ---- PonnoKini orange theme ---- */
 :root {
     --radius: 0.625rem;

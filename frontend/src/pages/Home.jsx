@@ -20,6 +20,7 @@ import heroArt from "@/assets/home-hero.svg";
 import api from "@/api/axios";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/ProductCard";
+import { t } from "@/i18n";
 
 const categoryIcons = [
     { match: /electronic|gadget|tech/, icon: Smartphone },
@@ -58,11 +59,11 @@ function SectionHeading({ id, eyebrow, title, description, href, linkLabel }) {
                     id={id}
                     className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
                 >
-                    {title}
+                    {t(title)}
                 </h2>
                 {description && (
                     <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-                        {description}
+                        {t(description)}
                     </p>
                 )}
             </div>
@@ -96,7 +97,7 @@ function ProductGrid({ products, loading, error, emptyMessage, badge }) {
     if (error) {
         return (
             <p className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-                {error}
+                {t(error)}
             </p>
         );
     }
@@ -187,7 +188,10 @@ export default function Home() {
                             result.reason,
                         );
                         nextErrors[section.key] =
-                            `We couldn't load ${section.label}. Please refresh the page to try again.`;
+                            t(
+                                "We couldn't load :section. Please refresh the page to try again.",
+                                { section: t(section.label) },
+                            );
                     }
                     setLoading((current) => ({
                         ...current,
@@ -209,15 +213,13 @@ export default function Home() {
                     <div className="max-w-xl">
                         <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs font-semibold tracking-wide text-primary sm:text-sm">
                             <Sparkles className="size-4" aria-hidden="true" />
-                            GOOD FINDS, ALL IN ONE PLACE
+                            {t("Good finds, all in one place")}
                         </p>
                         <h1 className="text-4xl leading-[1.08] font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-                            Find your next{" "}
-                            <span className="text-primary">favorite thing.</span>
+                            {t("Find your next favorite thing.")}
                         </h1>
                         <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-                            Discover thoughtful picks for your home, your
-                            everyday, and everything in between.
+                            {t("Discover thoughtful picks for your home, your everyday, and everything in between.")}
                         </p>
                         <Button
                             asChild
@@ -228,7 +230,7 @@ export default function Home() {
                                 to="/products"
                                 className="inline-flex items-center gap-2"
                             >
-                                Shop now
+                                {t("Shop now")}
                                 <ArrowRight
                                     className="size-4"
                                     aria-hidden="true"
@@ -240,13 +242,13 @@ export default function Home() {
                                 className="size-4 text-primary"
                                 aria-hidden="true"
                             />
-                            Curated picks, delivered nationwide
+                            {t("Curated picks, delivered nationwide")}
                         </div>
                     </div>
                     <div className="mx-auto w-full max-w-md">
                         <img
                             src={heroArt}
-                            alt="Illustration of PonnoKini shopping bags"
+                            alt={t("Illustration of PonnoKini shopping bags")}
                             className="w-full rounded-2xl"
                             fetchPriority="high"
                         />
@@ -257,9 +259,9 @@ export default function Home() {
             <section aria-labelledby="categories-heading">
                 <SectionHeading
                     id="categories-heading"
-                    eyebrow="Explore"
-                    title="Find your kind of thing"
-                    description="Browse the collections that make shopping a little easier."
+                    eyebrow={t("Explore")}
+                    title={t("Find your kind of thing")}
+                    description={t("Browse the collections that make shopping a little easier.")}
                 />
                 {loading.categories ? (
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -295,7 +297,7 @@ export default function Home() {
                                     </span>
                                     <span className="mt-4 flex items-center justify-between gap-2 text-sm font-semibold text-foreground sm:text-base">
                                         <span className="line-clamp-2">
-                                            {category.name}
+                                            {t(category.name)}
                                         </span>
                                         <ChevronRight
                                             className="size-4 shrink-0 text-muted-foreground"
@@ -308,7 +310,7 @@ export default function Home() {
                     </div>
                 ) : (
                     <p className="rounded-xl border border-border bg-card p-5 text-sm text-muted-foreground">
-                        New collections are on the way. Check back soon.
+                        {t("New collections are on the way. Check back soon.")}
                     </p>
                 )}
             </section>
@@ -316,36 +318,36 @@ export default function Home() {
             <section aria-labelledby="bestsellers-heading">
                 <SectionHeading
                     id="bestsellers-heading"
-                    eyebrow="Customer favorites"
-                    title="Best sellers"
-                    description="Popular picks ranked by quantity in successfully paid orders."
+                    eyebrow={t("Customer favorites")}
+                    title={t("Best sellers")}
+                    description={t("Popular picks ranked by quantity in successfully paid orders.")}
                     href="/products?sort=best_selling"
-                    linkLabel="Shop best sellers"
+                    linkLabel={t("Shop best sellers")}
                 />
                 <ProductGrid
                     products={bestSellers}
                     loading={loading.bestSellers}
                     error={errors.bestSellers}
-                    emptyMessage="Our best sellers are coming soon. Explore the catalog to find your next favorite."
-                    badge={(index) => (index === 0 ? "Customer favorite" : null)}
+                    emptyMessage={t("Our best sellers are coming soon. Explore the catalog to find your next favorite.")}
+                    badge={(index) => (index === 0 ? t("Customer favorite") : null)}
                 />
             </section>
 
             <section aria-labelledby="new-drops-heading">
                 <SectionHeading
                     id="new-drops-heading"
-                    eyebrow="Just arrived"
-                    title="New drops"
-                    description="The latest additions to the PonnoKini collection."
+                    eyebrow={t("Just arrived")}
+                    title={t("New drops")}
+                    description={t("The latest additions to the PonnoKini collection.")}
                     href="/products?sort=latest"
-                    linkLabel="See all new arrivals"
+                    linkLabel={t("See all new arrivals")}
                 />
                 <ProductGrid
                     products={newDrops}
                     loading={loading.newDrops}
                     error={errors.newDrops}
-                    emptyMessage="We're adding new products soon. In the meantime, take a look at the catalog."
-                    badge={(index) => (index === 0 ? "Just added" : null)}
+                    emptyMessage={t("We're adding new products soon. In the meantime, take a look at the catalog.")}
+                    badge={(index) => (index === 0 ? t("Just added") : null)}
                 />
             </section>
 
@@ -356,17 +358,16 @@ export default function Home() {
                 <div className="flex flex-col items-start justify-between gap-5 sm:flex-row sm:items-center">
                     <div className="max-w-2xl">
                         <p className="mb-2 text-sm font-semibold tracking-wide text-primary uppercase">
-                            Worth keeping an eye on
+                            {t("Worth keeping an eye on")}
                         </p>
                         <h2
                             id="deals-heading"
                             className="text-2xl font-bold tracking-tight sm:text-3xl"
                         >
-                            Limited-time deals
+                            {t("Limited-time deals")}
                         </h2>
                         <p className="mt-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-                            No active promotions right now. Browse the catalog
-                            and check back soon for upcoming offers.
+                            {t("No active promotions right now. Browse the catalog and check back soon for upcoming offers.")}
                         </p>
                     </div>
                     <Button
@@ -378,7 +379,7 @@ export default function Home() {
                             to="/products"
                             className="inline-flex items-center gap-2"
                         >
-                            Explore the catalog
+                            {t("Explore the catalog")}
                             <ArrowRight
                                 className="size-4"
                                 aria-hidden="true"
@@ -394,9 +395,9 @@ export default function Home() {
             >
                 <SectionHeading
                     id="benefits-heading"
-                    eyebrow="Shop with confidence"
-                    title="A better way to shop"
-                    description="The little things that make every order feel easier."
+                    eyebrow={t("Shop with confidence")}
+                    title={t("A better way to shop")}
+                    description={t("The little things that make every order feel easier.")}
                 />
                 <div className="grid gap-6 sm:grid-cols-3 sm:gap-5">
                     {customerBenefits.map(({ icon: Icon, title, description }) => (
@@ -406,10 +407,10 @@ export default function Home() {
                             </span>
                             <div>
                                 <h3 className="font-semibold text-foreground">
-                                    {title}
+                                    {t(title)}
                                 </h3>
                                 <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                                    {description}
+                                    {t(description)}
                                 </p>
                             </div>
                         </div>
@@ -420,9 +421,9 @@ export default function Home() {
             <section aria-labelledby="reviews-heading">
                 <SectionHeading
                     id="reviews-heading"
-                    eyebrow="Kind words"
-                    title="What shoppers are saying"
-                    description="Thoughts shared by customers who have shopped with us."
+                    eyebrow={t("Kind words")}
+                    title={t("What shoppers are saying")}
+                    description={t("Thoughts shared by customers who have shopped with us.")}
                 />
                 {loading.reviews ? (
                     <div className="grid gap-4 md:grid-cols-3">
@@ -446,7 +447,9 @@ export default function Home() {
                             >
                                 <div
                                     className="flex gap-1 text-amber-400"
-                                    aria-label={`${review.rating} out of 5 stars`}
+                                    aria-label={t("out of :count stars", {
+                                        count: review.rating,
+                                    })}
                                 >
                                     {Array.from({ length: 5 }, (_, index) => (
                                         <Star
@@ -465,7 +468,9 @@ export default function Home() {
                                     </p>
                                     <p className="mt-1 text-xs text-muted-foreground">
                                         {review.product?.name
-                                            ? `Reviewed ${review.product.name}`
+                                            ? t("Reviewed :product", {
+                                                  product: review.product.name,
+                                              })
                                             : review.created_at}
                                     </p>
                                 </div>
@@ -479,10 +484,10 @@ export default function Home() {
                             aria-hidden="true"
                         />
                         <p className="mt-3 font-semibold text-foreground">
-                            Your experience could be the first story here.
+                            {t("Your experience could be the first story here.")}
                         </p>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Shop a favorite and share what you think.
+                            {t("Shop a favorite and share what you think.")}
                         </p>
                         <Button
                             asChild
@@ -493,7 +498,7 @@ export default function Home() {
                                 to="/products"
                                 className="inline-flex items-center gap-2"
                             >
-                                Explore products
+                                {t("Explore products")}
                                 <ArrowRight
                                     className="size-4"
                                     aria-hidden="true"

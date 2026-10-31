@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { useAuthStore } from "@/store/useAuthStore";
 import SocialLoginButtons from "@/components/SocialLoginButtons";
+import { t } from "@/i18n";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -25,7 +26,7 @@ export default function Login() {
     // Laravel sends users to /login?error=social_auth_failed when OAuth fails
     const socialError =
         searchParams.get("error") === "social_auth_failed"
-            ? "Social login failed. Please try again."
+            ? t("Social login failed. Please try again.")
             : null;
 
     // ResetPassword sends users here with ?reset=1 after success
@@ -44,9 +45,9 @@ export default function Login() {
     return (
         <Card className="mx-auto mt-5 w-full max-w-md border-border sm:mt-10">
             <CardHeader>
-                <CardTitle className="text-2xl">Login</CardTitle>
+                <CardTitle className="text-2xl">{t("Login")}</CardTitle>
                 <CardDescription>
-                    Welcome back! Sign in to your account.
+                    {t("Welcome back! Sign in to your account.")}
                 </CardDescription>
             </CardHeader>
 
@@ -54,19 +55,18 @@ export default function Login() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {resetSuccess && (
                         <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400">
-                            Password reset successfully. Please sign in with
-                            your new password.
+                            {t("Password reset successfully. Please sign in with your new password.")}
                         </p>
                     )}
 
                     {(error || socialError) && (
                         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                            {error || socialError}
+                            {t(error || socialError)}
                         </p>
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email">{t("Email")}</Label>
                         <Input
                             id="email"
                             type="email"
@@ -79,18 +79,18 @@ export default function Login() {
 
                     <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="password">Password</Label>
+                            <Label htmlFor="password">{t("Password")}</Label>
                             <Link
                                 to="/forgot-password"
                                 className="text-sm text-primary underline-offset-4 hover:underline"
                             >
-                                Forgot password?
+                                {t("Forgot password?")}
                             </Link>
                         </div>
                         <Input
                             id="password"
                             type="password"
-                            placeholder="Your password"
+                            placeholder={t("Your password")}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -99,14 +99,14 @@ export default function Login() {
 
                     <Button type="submit" className="w-full" disabled={loading}>
                         {loading && <LoaderCircle className="animate-spin" />}
-                        Sign In
+                        {t("Sign In")}
                     </Button>
                 </form>
 
                 <div className="my-5 flex items-center">
                     <div className="flex-1 border-t border-border" />
                     <span className="px-3 text-xs uppercase text-muted-foreground">
-                        Or
+                        {t("Or")}
                     </span>
                     <div className="flex-1 border-t border-border" />
                 </div>
@@ -114,12 +114,12 @@ export default function Login() {
                 <SocialLoginButtons />
 
                 <p className="mt-5 text-center text-sm text-muted-foreground">
-                    Don&apos;t have an account?{" "}
+                    {t("Don't have an account?")}{" "}
                     <Link
                         to="/register"
                         className="font-medium text-primary underline-offset-4 hover:underline"
                     >
-                        Sign up
+                        {t("Sign up")}
                     </Link>
                 </p>
             </CardContent>

@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/card";
 import api from "@/api/axios";
 import { useAuthStore } from "@/store/useAuthStore";
+import { getIntlLocale, t } from "@/i18n";
+import { useLocale } from "@/locale-context";
 
 const PROVIDER_LABELS = {
     google: "Google",
@@ -39,7 +41,7 @@ const getInitials = (name = "") =>
 
 const formatDate = (value) =>
     value
-        ? new Date(value).toLocaleDateString("en-GB", {
+        ? new Date(value).toLocaleDateString(getIntlLocale(), {
               day: "numeric",
               month: "long",
               year: "numeric",
@@ -86,6 +88,7 @@ function ProfileSkeleton() {
 
 export default function Profile() {
     const { user, fetchUser, logout } = useAuthStore();
+    const { language, setLanguage } = useLocale();
     const navigate = useNavigate();
 
     const [searchParams] = useSearchParams();
@@ -174,7 +177,8 @@ export default function Profile() {
             setEmailCurrentPassword("");
             setAccountNotice({
                 type: "success",
-                text: `A verification code has been sent to ${nextEmail}.`,
+                text: "A verification code has been sent to :email.",
+                email: nextEmail,
             });
         } catch (error) {
             setAccountNotice({
@@ -260,7 +264,8 @@ export default function Profile() {
             setPasswordConfirmation("");
             setAccountNotice({
                 type: "success",
-                text: `A verification code has been sent to ${user.email}.`,
+                text: "A verification code has been sent to :email.",
+                email: user.email,
             });
         } catch (error) {
             setAccountNotice({
@@ -313,8 +318,10 @@ export default function Profile() {
           : [];
 
     const signInMethod = user.provider
-        ? `${PROVIDER_LABELS[user.provider] ?? user.provider} account`
-        : "Email & password";
+        ? t(":provider account", {
+              provider: PROVIDER_LABELS[user.provider] ?? user.provider,
+          })
+        : t("Email & password");
 
     return (
         <Card className="mx-auto mt-5 w-full max-w-2xl border-border sm:mt-10">
@@ -337,7 +344,7 @@ export default function Profile() {
                         <div className="flex flex-wrap gap-2 pt-1">
                             {roles.map((role) => (
                                 <Badge key={role} className="capitalize">
-                                    {role}
+                                    {t(role)}
                                 </Badge>
                             ))}
                             <Badge
@@ -348,7 +355,7 @@ export default function Profile() {
                                         : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300"
                                 }
                             >
-                                {isVerified ? "Verified" : "Not verified"}
+                                {t(isVerified ? "Verified" : "Not verified")}
                             </Badge>
                         </div>
                     </div>
@@ -356,42 +363,76 @@ export default function Profile() {
             </CardHeader>
 
             <CardContent className="divide-y divide-border">
+                <div className="flex flex-col gap-2 border-b border-border py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <Label htmlFor="profile-language" className="font-medium">
+                        {t("Language")}
+                    </Label>
+                    <div
+                        role="group"
+                        aria-labelledby="profile-language"
+                        className="inline-flex w-full rounded-md border border-input p-1 sm:w-auto"
+                    >
+                        <Label
+                            id="profile-language"
+                            className="sr-only"
+                        >
+                            {t("Language")}
+                        </Label>
+                        {[
+                            { value: "en", label: t("English") },
+                            { value: "bn", label: t("Bengali") },
+                        ].map(({ value, label }) => (
+                            <Button
+                                key={value}
+                                type="button"
+                                variant={language === value ? "default" : "ghost"}
+                                aria-pressed={language === value}
+                                onClick={() => setLanguage(value)}
+                                className="flex-1 sm:flex-none"
+                            >
+                                {label}
+                            </Button>
+                        ))}
+                    </div>
+                </div>
                 {verifiedParam === "1" && (
                     <p className="mb-2 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">
-                        Your email has been verified.
+                        {t("Your email has been verified.")}
                     </p>
                 )}
                 {verifiedParam === "invalid" && (
                     <p className="mb-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-                        That verification link is invalid or has expired.
+                        {t("That verification link is invalid or has expired.")}
                     </p>
                 )}
 
-                <InfoRow icon={Mail} label="Email address">
+                <InfoRow icon={Mail} label={t("Email address")}>
                     {user.email}
                 </InfoRow>
 
-                <InfoRow icon={KeyRound} label="Sign-in method">
+                <InfoRow icon={KeyRound} label={t("Sign-in method")}>
                     {signInMethod}
                 </InfoRow>
 
-                <InfoRow icon={ShieldCheck} label="Email status">
+                <InfoRow icon={ShieldCheck} label={t("Email status")}>
                     {isVerified
-                        ? `Verified on ${formatDate(user.email_verified_at)}`
-                        : "Your email is not verified yet. Verify it to place orders."}
+                        ? t("Verified on :date", {
+                              date: formatDate(user.email_verified_at),
+                          })
+                        : t("Your email is not verified yet. Verify it to place orders.")}
                 </InfoRow>
 
-                <InfoRow icon={CalendarDays} label="Member since">
+                <InfoRow icon={CalendarDays} label={t("Member since")}>
                     {formatDate(user.created_at)}
                 </InfoRow>
 
                 <section className="space-y-6 border-t border-border pt-6">
                     <div>
                         <h2 className="text-lg font-semibold">
-                            Account settings
+                            {t("Account settings")}
                         </h2>
                         <p className="mt-1 text-sm text-muted-foreground">
-                            Email and password changes require a verification code.
+                            {t("Email and password changes require a verification code.")}
                         </p>
                     </div>
 
@@ -404,13 +445,15 @@ export default function Profile() {
                                     : "rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
                             }
                         >
-                            {accountNotice.text}
+                            {t(accountNotice.text, {
+                                email: accountNotice.email ?? "",
+                            })}
                         </p>
                     )}
 
                     <form className="space-y-3" onSubmit={handleSaveName}>
-                        <h3 className="font-medium">Name</h3>
-                        <Label htmlFor="profile-name">Your name</Label>
+                        <h3 className="font-medium">{t("Name")}</h3>
+                        <Label htmlFor="profile-name">{t("Your name")}</Label>
                         <Input
                             id="profile-name"
                             autoComplete="name"
@@ -423,7 +466,7 @@ export default function Profile() {
                             type="submit"
                             disabled={saving || (name ?? user.name) === user.name}
                         >
-                            Save name
+                            {t("Save name")}
                         </Button>
                     </form>
 
@@ -435,10 +478,10 @@ export default function Profile() {
                                 : handleRequestEmailChange
                         }
                     >
-                        <h3 className="font-medium">Email address</h3>
+                        <h3 className="font-medium">{t("Email address")}</h3>
                         {!emailCodePending ? (
                             <>
-                                <Label htmlFor="profile-email">New email</Label>
+                                <Label htmlFor="profile-email">{t("New email")}</Label>
                                 <Input
                                     id="profile-email"
                                     type="email"
@@ -452,7 +495,7 @@ export default function Profile() {
                                 {!user.provider && (
                                     <>
                                         <Label htmlFor="email-current-password">
-                                            Current password
+                                            {t("Current password")}
                                         </Label>
                                         <Input
                                             id="email-current-password"
@@ -475,16 +518,18 @@ export default function Profile() {
                                         (email ?? user.email) === user.email
                                     }
                                 >
-                                    Send verification code
+                                    {t("Send verification code")}
                                 </Button>
                             </>
                         ) : (
                             <>
                                 <p className="text-sm text-muted-foreground">
-                                    Enter the code sent to {email ?? user.email}.
+                                    {t("Enter the code sent to :email.", {
+                                        email: email ?? user.email,
+                                    })}
                                 </p>
                                 <Label htmlFor="email-verification-code">
-                                    Verification code
+                                    {t("Verification code")}
                                 </Label>
                                 <Input
                                     id="email-verification-code"
@@ -502,7 +547,7 @@ export default function Profile() {
                                     maxLength={6}
                                 />
                                 <Button type="submit" disabled={saving}>
-                                    Verify new email
+                                    {t("Verify new email")}
                                 </Button>
                                 <Button
                                     type="button"
@@ -512,7 +557,7 @@ export default function Profile() {
                                         handleResendChangeCode("email")
                                     }
                                 >
-                                    Resend code
+                                    {t("Resend code")}
                                 </Button>
                             </>
                         )}
@@ -526,13 +571,13 @@ export default function Profile() {
                                 : handleRequestPasswordChange
                         }
                     >
-                        <h3 className="font-medium">Password</h3>
+                        <h3 className="font-medium">{t("Password")}</h3>
                         {!passwordCodePending ? (
                             <>
                                 {!user.provider && (
                                     <>
                                         <Label htmlFor="password-current">
-                                            Current password
+                                            {t("Current password")}
                                         </Label>
                                         <Input
                                             id="password-current"
@@ -549,7 +594,7 @@ export default function Profile() {
                                     </>
                                 )}
                                 <Label htmlFor="new-password">
-                                    New password
+                                    {t("New password")}
                                 </Label>
                                 <Input
                                     id="new-password"
@@ -563,7 +608,7 @@ export default function Profile() {
                                     minLength={8}
                                 />
                                 <Label htmlFor="confirm-new-password">
-                                    Confirm new password
+                                    {t("Confirm new password")}
                                 </Label>
                                 <Input
                                     id="confirm-new-password"
@@ -579,16 +624,18 @@ export default function Profile() {
                                     minLength={8}
                                 />
                                 <Button type="submit" disabled={saving}>
-                                    Send verification code
+                                    {t("Send verification code")}
                                 </Button>
                             </>
                         ) : (
                             <>
                                 <p className="text-sm text-muted-foreground">
-                                    Enter the code sent to {user.email}.
+                                    {t("Enter the code sent to :email.", {
+                                        email: user.email,
+                                    })}
                                 </p>
                                 <Label htmlFor="password-verification-code">
-                                    Verification code
+                                    {t("Verification code")}
                                 </Label>
                                 <Input
                                     id="password-verification-code"
@@ -606,7 +653,7 @@ export default function Profile() {
                                     maxLength={6}
                                 />
                                 <Button type="submit" disabled={saving}>
-                                    Verify and change password
+                                    {t("Verify and change password")}
                                 </Button>
                                 <Button
                                     type="button"
@@ -616,7 +663,7 @@ export default function Profile() {
                                         handleResendChangeCode("password")
                                     }
                                 >
-                                    Resend code
+                                    {t("Resend code")}
                                 </Button>
                             </>
                         )}
@@ -633,7 +680,7 @@ export default function Profile() {
                                         : "rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
                                 }
                             >
-                                {notice.text}
+                                {t(notice.text)}
                             </p>
                         )}
                         <Button
@@ -644,7 +691,7 @@ export default function Profile() {
                             {sending && (
                                 <LoaderCircle className="animate-spin" />
                             )}
-                            Resend verification email
+                            {t("Resend verification email")}
                         </Button>
                     </div>
                 )}
@@ -656,7 +703,7 @@ export default function Profile() {
                     variant="outline"
                     className="w-full gap-2 px-4 sm:w-auto"
                 >
-                    <Link to="/products">Continue shopping</Link>
+                    <Link to="/products">{t("Continue shopping")}</Link>
                 </Button>
                 <Button
                     className="w-full cursor-pointer sm:w-auto"
@@ -664,7 +711,7 @@ export default function Profile() {
                     onClick={handleLogout}
                 >
                     <LogOut />
-                    Logout
+                    {t("Logout")}
                 </Button>
             </CardFooter>
         </Card>

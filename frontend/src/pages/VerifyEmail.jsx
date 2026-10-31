@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import api from "@/api/axios";
 import { useAuthStore } from "@/store/useAuthStore";
+import { t } from "@/i18n";
 
 export default function VerifyEmail() {
     const [code, setCode] = useState("");
@@ -113,15 +114,15 @@ export default function VerifyEmail() {
         return (
             <Card className="mx-auto mt-5 w-full max-w-md border-border sm:mt-10">
                 <CardHeader>
-                    <CardTitle className="text-2xl">Email verified</CardTitle>
-                    <CardDescription>{message}</CardDescription>
+                    <CardTitle className="text-2xl">{t("Email verified")}</CardTitle>
+                    <CardDescription>{t(message)}</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Button
                         className="w-full gap-2 px-4"
                         onClick={() => navigate("/products")}
                     >
-                        Continue shopping
+                        {t("Continue shopping")}
                     </Button>
                 </CardContent>
             </Card>
@@ -131,10 +132,11 @@ export default function VerifyEmail() {
     return (
         <Card className="mx-auto mt-5 w-full max-w-md border-border sm:mt-10">
             <CardHeader>
-                <CardTitle className="text-2xl">Verify your email</CardTitle>
+                <CardTitle className="text-2xl">{t("Verify your email")}</CardTitle>
                 <CardDescription>
-                    Enter the 6-character code sent to {email || "your email"}.
-                    It expires after 10 minutes.
+                    {t("Enter the 6-character code sent to :email. It expires after 10 minutes.", {
+                        email: email || "your email",
+                    })}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -147,17 +149,17 @@ export default function VerifyEmail() {
                         <form onSubmit={handleVerify} className="space-y-4">
                             {error && (
                                 <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                                    {error}
+                                    {t(error)}
                                 </p>
                             )}
                             {message && (
                                 <p className="rounded-md bg-green-500/10 px-3 py-2 text-sm text-green-700 dark:text-green-400">
-                                    {message}
+                                    {t(message)}
                                 </p>
                             )}
                             <div className="space-y-2">
                                 <Label htmlFor="verification-code">
-                                    Verification code
+                                    {t("Verification code")}
                                 </Label>
                                 <Input
                                     id="verification-code"
@@ -184,7 +186,7 @@ export default function VerifyEmail() {
                                 {submitting && (
                                     <LoaderCircle className="animate-spin" />
                                 )}
-                                Verify email
+                                {t("Verify email")}
                             </Button>
                         </form>
 
@@ -199,8 +201,10 @@ export default function VerifyEmail() {
                                     <LoaderCircle className="animate-spin" />
                                 )}
                                 {resendAfter > 0
-                                    ? `Resend code in ${resendAfter}s`
-                                    : "Resend code"}
+                                    ? t("Resend code in :seconds s", {
+                                          seconds: resendAfter,
+                                      })
+                                    : t("Resend code")}
                             </Button>
                         </div>
                     </>

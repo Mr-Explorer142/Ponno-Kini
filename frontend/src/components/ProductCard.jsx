@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { PackageOpen, Star } from "lucide-react";
 import AddToCartButton from "@/components/AddToCartButton";
+import { getIntlLocale, t } from "@/i18n";
 
 const formatPrice = (price) =>
-    `৳${new Intl.NumberFormat("en-BD").format(Number(price) || 0)}`;
+    `৳${new Intl.NumberFormat(getIntlLocale()).format(Number(price) || 0)}`;
 
 function ProductImage({ product }) {
     const [imageFailed, setImageFailed] = useState(false);
@@ -47,7 +48,7 @@ export default function ProductCard({ product, badge }) {
                 <div className="space-y-2 p-3 sm:p-4">
                     {product.category?.name && (
                         <p className="truncate text-xs text-muted-foreground">
-                            {product.category.name}
+                            {t(product.category.name)}
                         </p>
                     )}
                     <h3 className="line-clamp-2 min-h-10 text-sm font-semibold text-foreground sm:text-base">

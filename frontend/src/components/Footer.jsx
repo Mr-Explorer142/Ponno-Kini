@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, ShoppingBag } from "lucide-react";
+import { t } from "@/i18n";
 
 const shopLinks = [
     { to: "/products", label: "Browse catalog" },
@@ -22,7 +23,7 @@ function FooterLinks({ title, links }) {
                             to={to}
                             className="text-sm text-muted-foreground transition-colors hover:text-primary"
                         >
-                            {label}
+                            {t(label)}
                         </Link>
                     </li>
                 ))}
@@ -44,29 +45,28 @@ export default function Footer() {
                         PonnoKini
                     </Link>
                     <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                        Thoughtful finds for your home, your everyday, and
-                        everything in between.
+                        {t("Thoughtful finds for your home, your everyday, and everything in between.")}
                     </p>
                     <Link
                         to="/products"
                         className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
                     >
-                        Start exploring
+                        {t("Start exploring")}
                         <ArrowRight className="size-4" aria-hidden="true" />
                     </Link>
                 </div>
 
-                <FooterLinks title="Shop" links={shopLinks} />
-                <FooterLinks title="Your account" links={accountLinks} />
+                <FooterLinks title={t("Shop")} links={shopLinks} />
+                <FooterLinks title={t("Your account")} links={accountLinks} />
             </div>
 
             <div className="border-t border-border bg-muted/50">
                 <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
                     <p>
-                        &copy; {new Date().getFullYear()} PonnoKini. All rights
-                        reserved.
+                        &copy; {new Date().getFullYear()} PonnoKini.{" "}
+                        {t("All rights reserved.")}
                     </p>
-                    <p>Made for easier everyday shopping.</p>
+                    <p>{t("Made for easier everyday shopping.")}</p>
                 </div>
             </div>
         </footer>

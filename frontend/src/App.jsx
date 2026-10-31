@@ -17,11 +17,14 @@ import OrderResult from "./pages/OrderResult";
 import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import { useAuthStore } from "./store/useAuthStore";
+import { useLocale } from "./locale-context";
+import { t } from "./i18n";
 
-const Page = ({ title }) => <h1 className="text-3xl font-bold">{title}</h1>;
+const Page = ({ title }) => <h1 className="text-3xl font-bold">{t(title)}</h1>;
 
 function App() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
+    const { language } = useLocale();
     const [theme, setTheme] = useState(() =>
         localStorage.getItem("ponno-kini-theme") === "dark" ? "dark" : "light",
     );
@@ -43,7 +46,10 @@ function App() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col bg-background text-foreground">
+        <div
+            data-language={language}
+            className="flex min-h-screen flex-col bg-background text-foreground"
+        >
             <Navbar theme={theme} onToggleTheme={toggleTheme} />
             <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
                 <Routes>

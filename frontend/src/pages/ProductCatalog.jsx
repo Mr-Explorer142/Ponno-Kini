@@ -5,6 +5,7 @@ import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/api/axios";
+import { t } from "@/i18n";
 
 const SORT_OPTIONS = [
     { value: "latest", label: "Newest" },
@@ -47,21 +48,21 @@ function CatalogFilters({
             className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,2fr)_minmax(10rem,1fr)_repeat(2,minmax(7rem,0.7fr))_auto] lg:items-end"
         >
             <label className="flex flex-col gap-2 text-sm font-medium">
-                Search products
+                {t("Search products")}
                 <span className="relative block">
                     <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                         type="search"
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
-                        placeholder="Name or description"
+                        placeholder={t("Name or description")}
                         className="pl-9"
                     />
                 </span>
             </label>
 
             <label className="flex flex-col gap-2 text-sm font-medium">
-                Category
+                {t("Category")}
                 <select
                     value={searchParams.get("category_id") ?? ""}
                     onChange={(event) =>
@@ -69,17 +70,17 @@ function CatalogFilters({
                     }
                     className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 >
-                    <option value="">All categories</option>
+                    <option value="">{t("All categories")}</option>
                     {categories.map((category) => (
                         <option key={category.id} value={category.id}>
-                            {category.name}
+                            {t(category.name)}
                         </option>
                     ))}
                 </select>
             </label>
 
             <label className="flex flex-col gap-2 text-sm font-medium">
-                Min price
+                {t("Min price")}
                 <Input
                     type="number"
                     min="0"
@@ -89,19 +90,19 @@ function CatalogFilters({
                 />
             </label>
             <label className="flex flex-col gap-2 text-sm font-medium">
-                Max price
+                {t("Max price")}
                 <Input
                     type="number"
                     min="0"
                     value={maxPrice}
                     onChange={(event) => setMaxPrice(event.target.value)}
-                    placeholder="Any"
+                    placeholder={t("Any")}
                 />
             </label>
 
             <Button type="submit" className="h-10">
                 <SlidersHorizontal aria-hidden="true" />
-                Apply
+                {t("Apply")}
             </Button>
         </form>
     );
@@ -202,14 +203,13 @@ export default function ProductCatalog() {
         <div className="space-y-8 pb-10">
             <header className="space-y-3">
                 <p className="text-sm font-semibold tracking-wide text-primary uppercase">
-                    PonnoKini collection
+                    {t("PonnoKini collection")}
                 </p>
                 <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-                    Product catalog
+                    {t("Product catalog")}
                 </h1>
                 <p className="max-w-2xl text-muted-foreground">
-                    Browse our products and use the filters to find just what
-                    you’re looking for.
+                    {t("Browse our products and use the filters to find just what you’re looking for.")}
                 </p>
             </header>
 
@@ -223,20 +223,22 @@ export default function ProductCatalog() {
 
             {categoryError && (
                 <p className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
-                    {categoryError}
+                    {t(categoryError)}
                 </p>
             )}
 
-            <section aria-label="Products">
+            <section aria-label={t("Products")}>
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <p
                         className="text-sm text-muted-foreground"
                         aria-live="polite"
                     >
-                        {meta ? `${meta.total} products` : "Browse our products"}
+                        {meta
+                            ? t(":count products", { count: meta.total })
+                            : t("Browse our products")}
                     </p>
                     <label className="flex items-center gap-2 text-sm">
-                        Sort by
+                        {t("Sort by")}
                         <select
                             value={searchParams.get("sort") ?? "latest"}
                             onChange={(event) =>
@@ -246,7 +248,7 @@ export default function ProductCatalog() {
                         >
                             {SORT_OPTIONS.map((option) => (
                                 <option key={option.value} value={option.value}>
-                                    {option.label}
+                                    {t(option.label)}
                                 </option>
                             ))}
                         </select>
@@ -260,7 +262,7 @@ export default function ProductCatalog() {
                         role="alert"
                         className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
                     >
-                        {error}
+                        {t(error)}
                     </p>
                 ) : products.length ? (
                     <>
@@ -271,7 +273,7 @@ export default function ProductCatalog() {
                         </div>
                         {meta?.last_page > 1 && (
                             <nav
-                                aria-label="Catalog pages"
+                                aria-label={t("Catalog pages")}
                                 className="mt-8 flex items-center justify-center gap-4"
                             >
                                 <Button
@@ -281,10 +283,13 @@ export default function ProductCatalog() {
                                         changePage(meta.current_page - 1)
                                     }
                                 >
-                                    Previous
+                                    {t("Previous")}
                                 </Button>
                                 <span className="text-sm text-muted-foreground">
-                                    Page {meta.current_page} of {meta.last_page}
+                                    {t("Page :current of :total", {
+                                        current: meta.current_page,
+                                        total: meta.last_page,
+                                    })}
                                 </span>
                                 <Button
                                     variant="outline"
@@ -295,7 +300,7 @@ export default function ProductCatalog() {
                                         changePage(meta.current_page + 1)
                                     }
                                 >
-                                    Next
+                                    {t("Next")}
                                 </Button>
                             </nav>
                         )}
@@ -303,10 +308,10 @@ export default function ProductCatalog() {
                 ) : (
                     <div className="rounded-2xl border border-border bg-card p-8 text-center">
                         <h2 className="text-lg font-semibold">
-                            No products found
+                            {t("No products found")}
                         </h2>
                         <p className="mt-2 text-sm text-muted-foreground">
-                            Try adjusting your search or filters.
+                            {t("Try adjusting your search or filters.")}
                         </p>
                     </div>
                 )}

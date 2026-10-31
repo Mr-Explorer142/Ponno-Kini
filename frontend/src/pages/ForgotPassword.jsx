@@ -12,6 +12,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import api from "@/api/axios";
+import { t } from "@/i18n";
 
 export default function ForgotPassword() {
     const [email, setEmail] = useState("");
@@ -41,10 +42,9 @@ export default function ForgotPassword() {
     return (
         <Card className="mx-auto mt-10 w-full max-w-md border-orange-200">
             <CardHeader>
-                <CardTitle className="text-2xl">Forgot password?</CardTitle>
+                <CardTitle className="text-2xl">{t("Forgot password?")}</CardTitle>
                 <CardDescription>
-                    Enter your email and we&apos;ll send you a link to reset
-                    your password.
+                    {t("Enter your email and we'll send you a link to reset your password.")}
                 </CardDescription>
             </CardHeader>
 
@@ -53,31 +53,28 @@ export default function ForgotPassword() {
                     <div className="space-y-4 text-center">
                         <MailCheck className="mx-auto size-12 text-primary" />
                         <p className="text-sm text-muted-foreground">
-                            If an account exists for{" "}
-                            <span className="font-medium text-foreground">
-                                {email}
-                            </span>
-                            , a reset link is on its way. Check your inbox and
-                            spam folder.
+                            {t("If an account exists for :email, a reset link is on its way. Check your inbox and spam folder.", {
+                                email,
+                            })}
                         </p>
                         <Button
                             variant="outline"
                             className="w-full"
                             onClick={() => setSent(false)}
                         >
-                            Use a different email
+                            {t("Use a different email")}
                         </Button>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-4">
                         {error && (
                             <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
-                                {error}
+                                {t(error)}
                             </p>
                         )}
 
                         <div className="space-y-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="email">{t("Email")}</Label>
                             <Input
                                 id="email"
                                 type="email"
@@ -96,7 +93,7 @@ export default function ForgotPassword() {
                             {loading && (
                                 <LoaderCircle className="animate-spin" />
                             )}
-                            Send reset link
+                            {t("Send reset link")}
                         </Button>
                     </form>
                 )}
@@ -104,7 +101,7 @@ export default function ForgotPassword() {
                 <Button asChild variant="ghost" className="mt-4 w-full">
                     <Link to="/login">
                         <ArrowLeft />
-                        Back to login
+                        {t("Back to login")}
                     </Link>
                 </Button>
             </CardContent>

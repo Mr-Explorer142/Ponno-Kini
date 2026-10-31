@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 import { Download, Package, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/api/axios";
+import { getIntlLocale, t } from "@/i18n";
 
 const formatPrice = (price) =>
-    `৳${new Intl.NumberFormat("en-BD").format(Number(price) || 0)}`;
+    `৳${new Intl.NumberFormat(getIntlLocale()).format(Number(price) || 0)}`;
 
 const formatDate = (value) =>
     value
-        ? new Date(value).toLocaleString("en-BD", {
+        ? new Date(value).toLocaleString(getIntlLocale(), {
               dateStyle: "medium",
               timeStyle: "short",
           })
@@ -87,20 +88,20 @@ export default function Orders() {
     return (
         <section className="mx-auto w-full max-w-4xl space-y-5">
             <header>
-                <h1 className="text-2xl font-bold sm:text-3xl">Your orders</h1>
+                <h1 className="text-2xl font-bold sm:text-3xl">{t("Your orders")}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                    View order details and download invoices.
+                    {t("View order details and download invoices.")}
                 </p>
             </header>
 
             {error && (
                 <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                    {error}
+                    {t(error)}
                 </p>
             )}
             {downloadError && (
                 <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                    {downloadError}
+                    {t(downloadError)}
                 </p>
             )}
 
@@ -108,7 +109,7 @@ export default function Orders() {
                 <div
                     className="space-y-4"
                     role="status"
-                    aria-label="Loading orders"
+                    aria-label={t("Loading orders")}
                 >
                     {[1, 2].map((item) => (
                         <div
@@ -121,15 +122,15 @@ export default function Orders() {
                 <div className="rounded-xl border border-border bg-card px-5 py-12 text-center">
                     <Package className="mx-auto size-10 text-muted-foreground" />
                     <h2 className="mt-4 text-lg font-semibold">
-                        No orders yet
+                        {t("No orders yet")}
                     </h2>
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Your completed checkouts will appear here.
+                        {t("Your completed checkouts will appear here.")}
                     </p>
                     <Button asChild className="mt-5">
                         <Link to="/products">
                             <ShoppingBag aria-hidden="true" />
-                            Browse products
+                            {t("Browse products")}
                         </Link>
                     </Button>
                 </div>
@@ -143,10 +144,14 @@ export default function Orders() {
                             <div className="flex flex-col gap-3 border-b border-border pb-4 sm:flex-row sm:items-start sm:justify-between">
                                 <div className="min-w-0">
                                     <h2 className="break-all font-semibold">
-                                        Order {order.order_number}
+                                        {t("Order :number", {
+                                            number: order.order_number,
+                                        })}
                                     </h2>
                                     <p className="mt-1 text-sm text-muted-foreground">
-                                        Placed {formatDate(order.created_at)}
+                                        {t("Placed :date", {
+                                            date: formatDate(order.created_at),
+                                        })}
                                     </p>
                                 </div>
                                 <Button
@@ -158,31 +163,31 @@ export default function Orders() {
                                 >
                                     <Download aria-hidden="true" />
                                     {downloadingOrder === order.id
-                                        ? "Preparing invoice..."
-                                        : "Download invoice"}
+                                        ? t("Preparing invoice...")
+                                        : t("Download invoice")}
                                 </Button>
                             </div>
 
                             <div className="grid gap-3 py-4 text-sm sm:grid-cols-3">
                                 <p>
                                     <span className="text-muted-foreground">
-                                        Order status:{" "}
+                                        {t("Order status:")}{" "}
                                     </span>
                                     <span className="font-medium">
-                                        {titleCase(order.status)}
+                                        {t(titleCase(order.status))}
                                     </span>
                                 </p>
                                 <p>
                                     <span className="text-muted-foreground">
-                                        Payment:{" "}
+                                        {t("Payment:")}{" "}
                                     </span>
                                     <span className="font-medium">
-                                        {titleCase(order.payment_status)}
+                                        {t(titleCase(order.payment_status))}
                                     </span>
                                 </p>
                                 <p>
                                     <span className="text-muted-foreground">
-                                        Total:{" "}
+                                        {t("Total:")}{" "}
                                     </span>
                                     <span className="font-semibold">
                                         {formatPrice(order.total_amount)}
@@ -192,7 +197,9 @@ export default function Orders() {
 
                             <div className="space-y-3 border-t border-border pt-4">
                                 <h3 className="text-sm font-semibold">
-                                    Items ({order.items?.length ?? 0})
+                                    {t("Items (:count)", {
+                                        count: order.items?.length ?? 0,
+                                    })}
                                 </h3>
                                 {order.items?.map((item) => (
                                     <div
@@ -202,7 +209,7 @@ export default function Orders() {
                                         <span className="min-w-0">
                                             <span className="font-medium">
                                                 {item.product?.name ??
-                                                    "Product no longer available"}
+                                                    t("Product no longer available")}
                                             </span>
                                             <span className="text-muted-foreground">
                                                 {" "}
@@ -215,7 +222,7 @@ export default function Orders() {
                                     </div>
                                 ))}
                                 <div className="flex justify-between gap-4 text-sm text-muted-foreground">
-                                    <span>Delivery</span>
+                                    <span>{t("Delivery")}</span>
                                     <span>{formatPrice(order.delivery_charge)}</span>
                                 </div>
                             </div>
@@ -223,7 +230,7 @@ export default function Orders() {
                             {order.shipping_address && (
                                 <div className="mt-4 border-t border-border pt-4 text-sm">
                                     <h3 className="font-semibold">
-                                        Shipping address
+                                        {t("Shipping address")}
                                     </h3>
                                     <p className="mt-1 text-muted-foreground">
                                         {[
@@ -249,7 +256,7 @@ export default function Orders() {
 
             {!loading && lastPage > 1 && (
                 <nav
-                    aria-label="Order history pages"
+                    aria-label={t("Order history pages")}
                     className="flex items-center justify-between"
                 >
                     <Button
@@ -258,10 +265,13 @@ export default function Orders() {
                         disabled={page <= 1}
                         onClick={() => changePage(page - 1)}
                     >
-                        Previous
+                        {t("Previous")}
                     </Button>
                     <span className="text-sm text-muted-foreground">
-                        Page {page} of {lastPage}
+                        {t("Page :current of :total", {
+                            current: page,
+                            total: lastPage,
+                        })}
                     </span>
                     <Button
                         type="button"
@@ -269,7 +279,7 @@ export default function Orders() {
                         disabled={page >= lastPage}
                         onClick={() => changePage(page + 1)}
                     >
-                        Next
+                        {t("Next")}
                     </Button>
                 </nav>
             )}

@@ -1,6 +1,7 @@
 import { FaGoogle, FaGithub } from "react-icons/fa";
 import { Button } from "@/components/ui/button";
 import api from "@/api/axios.js";
+import { t } from "@/i18n";
 
 export default function SocialLoginButtons() {
     const handleSocialLogin = async (provider) => {
@@ -25,7 +26,7 @@ export default function SocialLoginButtons() {
                 onClick={() => handleSocialLogin("google")}
             >
                 <FaGoogle />
-                Continue with Google
+                {t("Continue with Google")}
             </Button>
 
             <Button
@@ -34,7 +35,7 @@ export default function SocialLoginButtons() {
                 onClick={() => handleSocialLogin("github")}
             >
                 <FaGithub />
-                Continue with GitHub
+                {t("Continue with GitHub")}
             </Button>
         </div>
     );

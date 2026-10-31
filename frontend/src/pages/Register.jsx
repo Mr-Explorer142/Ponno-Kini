@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { useAuthStore } from "@/store/useAuthStore";
 import SocialLoginButtons from "@/components/SocialLoginButtons";
+import { t } from "@/i18n";
 
 export default function Register() {
     const [name, setName] = useState("");
@@ -50,9 +51,9 @@ export default function Register() {
     return (
         <Card className="mx-auto mt-5 w-full max-w-md border-border sm:mt-10">
             <CardHeader>
-                <CardTitle className="text-2xl">Create an Account</CardTitle>
+                <CardTitle className="text-2xl">{t("Create an Account")}</CardTitle>
                 <CardDescription>
-                    Join PonnoKini and start shopping.
+                    {t("Join PonnoKini and start shopping.")}
                 </CardDescription>
             </CardHeader>
 
@@ -60,15 +61,15 @@ export default function Register() {
                 <form onSubmit={handleRegister} className="space-y-4">
                     {(localError || error) && (
                         <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                            {localError || error}
+                            {t(localError || error)}
                         </p>
                     )}
 
                     <div className="space-y-2">
-                        <Label htmlFor="name">Full Name</Label>
+                        <Label htmlFor="name">{t("Full Name")}</Label>
                         <Input
                             id="name"
-                            placeholder="Your full name"
+                            placeholder={t("Your full name")}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
@@ -76,7 +77,7 @@ export default function Register() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
+                        <Label htmlFor="email">{t("Email")}</Label>
                         <Input
                             id="email"
                             type="email"
@@ -88,7 +89,7 @@ export default function Register() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="password">Password</Label>
+                        <Label htmlFor="password">{t("Password")}</Label>
                         <Input
                             id="password"
                             type="password"
@@ -100,7 +101,7 @@ export default function Register() {
 
                     <div className="space-y-2">
                         <Label htmlFor="password_confirmation">
-                            Confirm Password
+                            {t("Confirm Password")}
                         </Label>
                         <Input
                             id="password_confirmation"
@@ -115,14 +116,14 @@ export default function Register() {
 
                     <Button type="submit" className="w-full" disabled={loading}>
                         {loading && <LoaderCircle className="animate-spin" />}
-                        Sign Up
+                        {t("Sign Up")}
                     </Button>
                 </form>
 
                 <div className="my-5 flex items-center">
                     <div className="flex-1 border-t border-border" />
                     <span className="px-3 text-xs uppercase text-muted-foreground">
-                        Or
+                        {t("Or")}
                     </span>
                     <div className="flex-1 border-t border-border" />
                 </div>
@@ -130,12 +131,12 @@ export default function Register() {
                 <SocialLoginButtons />
 
                 <p className="mt-5 text-center text-sm text-muted-foreground">
-                    Already have an account?{" "}
+                    {t("Already have an account?")}{" "}
                     <Link
                         to="/login"
                         className="font-medium text-primary underline-offset-4 hover:underline"
                     >
-                        Log in here
+                        {t("Log in here")}
                     </Link>
                 </p>
             </CardContent>

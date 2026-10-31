@@ -4,9 +4,10 @@ import { CheckCircle2, CircleX, Download, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/api/axios";
 import { useCartStore } from "@/store/useCartStore";
+import { getIntlLocale, t } from "@/i18n";
 
 const formatPrice = (price) =>
-    `৳${new Intl.NumberFormat("en-BD").format(Number(price) || 0)}`;
+    `৳${new Intl.NumberFormat(getIntlLocale()).format(Number(price) || 0)}`;
 
 export default function OrderResult() {
     const [searchParams] = useSearchParams();
@@ -80,23 +81,22 @@ export default function OrderResult() {
                     <>
                         <CheckCircle2 className="mx-auto size-14 text-green-600" />
                         <h1 className="mt-4 text-3xl font-bold">
-                            Thank you for your order!
+                            {t("Thank you for your order!")}
                         </h1>
                         <p className="mt-3 text-muted-foreground">
-                            Your payment was successful and your order is now
-                            being processed.
+                            {t("Your payment was successful and your order is now being processed.")}
                         </p>
                         <div className="mt-6 rounded-xl bg-secondary/60 p-4 text-left text-sm">
                             <p>
-                                <strong>Order number:</strong>{" "}
+                                <strong>{t("Order number:")}</strong>{" "}
                                 {order.order_number}
                             </p>
                             <p className="mt-1">
-                                <strong>Order status:</strong>{" "}
-                                {order.status}
+                                <strong>{t("Order status:")}</strong>{" "}
+                                {t(order.status)}
                             </p>
                             <p className="mt-1">
-                                <strong>Total paid:</strong>{" "}
+                                <strong>{t("Total paid:")}</strong>{" "}
                                 {formatPrice(order.total_amount)}
                             </p>
                         </div>
@@ -109,8 +109,8 @@ export default function OrderResult() {
                             >
                                 <Download aria-hidden="true" />
                                 {downloading
-                                    ? "Preparing invoice..."
-                                    : "Download invoice"}
+                                    ? t("Preparing invoice...")
+                                    : t("Download invoice")}
                             </Button>
                             <Button asChild className="gap-2 px-4">
                                 <Link
@@ -118,7 +118,7 @@ export default function OrderResult() {
                                     className="inline-flex items-center gap-2"
                                 >
                                     <ShoppingBag aria-hidden="true" />
-                                    Continue shopping
+                                    {t("Continue shopping")}
                                 </Link>
                             </Button>
                         </div>
@@ -127,29 +127,28 @@ export default function OrderResult() {
                     <>
                         <CircleX className="mx-auto size-14 text-destructive" />
                         <h1 className="mt-4 text-3xl font-bold">
-                            Payment was not completed
+                            {t("Payment was not completed")}
                         </h1>
                         <p className="mt-3 text-muted-foreground">
-                            Your order has not been marked as paid. You can
-                            return to your cart and try again.
+                            {t("Your order has not been marked as paid. You can return to your cart and try again.")}
                         </p>
                         {order && (
                             <p className="mt-4 text-sm text-muted-foreground">
-                                Order number: {order.order_number}
+                                {t("Order number:")} {order.order_number}
                             </p>
                         )}
                         <Button asChild className="mt-6">
-                            <Link to="/cart">Return to cart</Link>
+                            <Link to="/cart">{t("Return to cart")}</Link>
                         </Button>
                     </>
                 ) : (
                     <>
                         <div className="mx-auto size-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
                         <h1 className="mt-4 text-2xl font-bold">
-                            Checking your payment
+                            {t("Checking your payment")}
                         </h1>
                         <p className="mt-2 text-muted-foreground">
-                            Please wait while we confirm your order status.
+                            {t("Please wait while we confirm your order status.")}
                         </p>
                     </>
                 )}
@@ -157,8 +156,8 @@ export default function OrderResult() {
                     (!orderId &&
                         "We couldn't find the order associated with this payment.")) && (
                     <p role="alert" className="mt-4 text-sm text-destructive">
-                        {error ||
-                            "We couldn't find the order associated with this payment."}
+                        {t(error ||
+                            "We couldn't find the order associated with this payment.")}
                     </p>
                 )}
             </div>
