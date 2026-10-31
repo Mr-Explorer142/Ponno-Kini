@@ -68,6 +68,11 @@ export default function ProductCard({ product, badge }) {
                             </span>
                         )}
                     </div>
+                    <p className={`text-xs ${Number(product.stock) > 0 ? "text-muted-foreground" : "font-medium text-destructive"}`}>
+                        {Number(product.stock) > 0
+                            ? t(":count in stock", { count: product.stock })
+                            : t("Out of stock")}
+                    </p>
                 </div>
             </Link>
             <div className="px-3 pb-3 sm:px-4 sm:pb-4">

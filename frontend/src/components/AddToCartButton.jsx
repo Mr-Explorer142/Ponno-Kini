@@ -10,9 +10,18 @@ export default function AddToCartButton({
     className,
 }) {
     const addItem = useCartStore((state) => state.addItem);
+    const quantityInCart = useCartStore(
+        (state) =>
+            state.items.find((item) => item.product.id === product.id)
+                ?.quantity ?? 0,
+    );
     const [added, setAdded] = useState(false);
+    const stock = Number(product.stock) || 0;
+    const unavailable = stock <= 0;
+    const limitReached = quantityInCart >= stock;
 
     const handleAdd = () => {
+        if (unavailable || limitReached) return;
         addItem(product);
         setAdded(true);
         window.setTimeout(() => setAdded(false), 1200);
@@ -24,13 +33,20 @@ export default function AddToCartButton({
             size={size}
             className={className}
             onClick={handleAdd}
+            disabled={unavailable || limitReached}
         >
-            {added ? (
+            {unavailable ? (
+                t("Out of stock")
+            ) : limitReached ? (
+                t("Stock limit reached")
+            ) : added ? (
                 <Check aria-hidden="true" />
             ) : (
                 <ShoppingCart aria-hidden="true" />
             )}
-            {t(added ? "Added to cart" : "Add to Cart")}
+            {!unavailable &&
+                !limitReached &&
+                t(added ? "Added to cart" : "Add to Cart")}
         </Button>
     );
 }

@@ -95,6 +95,12 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
+        if ($category->products()->exists()) {
+            return response()->json([
+                'message' => 'Move or delete this category’s products before deleting the category.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
         $category->delete();
 
         $this->clearCategoryCache($category->id);

@@ -23,9 +23,20 @@ const OAuthCallback = () => {
         }
 
         loginWithToken(token).then((success) => {
-            navigate(success ? "/products" : "/login", { replace: true });
+            const user = useAuthStore.getState().user;
+            const isAdmin = user?.roles?.some((role) => role.name === "admin");
+            navigate(
+                success
+                    ? !user?.email_verified_at
+                        ? "/verify-email"
+                        : isAdmin
+                          ? "/admin"
+                          : "/products"
+                    : "/login",
+                { replace: true },
+            );
         });
-    }, []);
+    }, [loginWithToken, navigate, searchParams]);
 
     return (
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3">

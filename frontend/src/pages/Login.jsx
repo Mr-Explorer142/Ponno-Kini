@@ -38,7 +38,14 @@ export default function Login() {
 
         if (loggedIn) {
             const user = useAuthStore.getState().user;
-            navigate(user?.email_verified_at ? "/products" : "/verify-email");
+            const isAdmin = user?.roles?.some((role) => role.name === "admin");
+            navigate(
+                !user?.email_verified_at
+                    ? "/verify-email"
+                    : isAdmin
+                      ? "/admin"
+                      : "/products",
+            );
         }
     };
 

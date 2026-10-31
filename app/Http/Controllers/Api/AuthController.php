@@ -45,7 +45,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'User registered successfully. Check your email for the verification code.',
-            'user' => $user,
+            'user' => $user->load('roles'),
             'access_token' => $token,
             'token_type' => 'Bearer',
             'resend_after_seconds' => 60,
@@ -72,7 +72,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Logged in successfully',
-            'user' => $user,
+            'user' => $user->load('roles'),
             'access_token' => $token,
             'token_type' => 'Bearer',
         ]);

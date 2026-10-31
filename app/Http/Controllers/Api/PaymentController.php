@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Notifications\PaymentSuccessfulNotification;
+use App\Services\OrderInventoryService;
 use App\Services\SSLCommerzService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,15 +22,31 @@ class PaymentController extends Controller
     }
 
     // 1. Initiate Payment
-    public function initiate(Request $request, Order $order)
+    public function initiate(Request $request, Order $order, OrderInventoryService $inventory)
     {
         if ($order->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized order payment request.'], 403);
         }
 
+        if ($order->payment_method !== 'online') {
+            return response()->json(['message' => 'This order is not using online payment.'], 422);
+        }
+
         if ($order->payment_status === 'paid') {
             return response()->json(['message' => 'Order is already paid.'], 400);
         }
+
+        $order = DB::transaction(function () use ($order, $inventory) {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+
+            if (in_array($lockedOrder->status, ['cancelled', 'failed'], true)) {
+                abort(422, 'This order is closed. Please create a new order to try again.');
+            }
+
+            $inventory->reserve($lockedOrder);
+
+            return $lockedOrder;
+        });
 
         $transactionId = $order->order_number.'-'.Str::upper(Str::random(8));
         $result = $this->sslCommerz->initiatePayment($order, $transactionId);
@@ -62,7 +79,7 @@ class PaymentController extends Controller
     }
 
     // 2. Success Callback
-    public function success(Request $request)
+    public function success(Request $request, OrderInventoryService $inventory)
     {
         $tranId = $request->input('tran_id');
         $valId = $request->input('val_id');
@@ -103,26 +120,22 @@ class PaymentController extends Controller
         if ($payment && $payment->status !== 'paid') {
             $payment->update(['status' => 'failed', 'raw_response' => $request->all()]);
         }
-        if ($order->payment_status !== 'paid') {
-            $order->update(['payment_status' => 'failed', 'status' => 'failed']);
-        }
+        $this->markUnsuccessfulPayment(
+            $request,
+            $tranId,
+            'failed',
+            'failed',
+            $inventory,
+        );
 
         return redirect()->away($this->frontendResultUrl($order, 'failed'));
     }
 
     // 3. Fail Callback
-    public function fail(Request $request)
+    public function fail(Request $request, OrderInventoryService $inventory)
     {
         $tranId = $request->input('tran_id');
-        $payment = Payment::where('transaction_id', $tranId)->latest()->first();
-        $order = $payment?->order;
-
-        if ($payment && $payment->status !== 'paid') {
-            $payment->update(['status' => 'failed', 'raw_response' => $request->all()]);
-        }
-        if ($order && $order->payment_status !== 'paid') {
-            $order->update(['payment_status' => 'failed', 'status' => 'failed']);
-        }
+        $order = $this->markUnsuccessfulPayment($request, $tranId, 'failed', 'failed', $inventory);
 
         return $order
             ? redirect()->away($this->frontendResultUrl($order, 'failed'))
@@ -130,18 +143,10 @@ class PaymentController extends Controller
     }
 
     // 4. Cancel Callback
-    public function cancel(Request $request)
+    public function cancel(Request $request, OrderInventoryService $inventory)
     {
         $tranId = $request->input('tran_id');
-        $payment = Payment::where('transaction_id', $tranId)->latest()->first();
-        $order = $payment?->order;
-
-        if ($payment && $payment->status !== 'paid') {
-            $payment->update(['status' => 'cancelled', 'raw_response' => $request->all()]);
-        }
-        if ($order && $order->payment_status !== 'paid') {
-            $order->update(['payment_status' => 'cancelled', 'status' => 'cancelled']);
-        }
+        $order = $this->markUnsuccessfulPayment($request, $tranId, 'cancelled', 'cancelled', $inventory);
 
         return $order
             ? redirect()->away($this->frontendResultUrl($order, 'cancelled'))
@@ -195,5 +200,48 @@ class PaymentController extends Controller
     private function frontendResultUrl(Order $order, string $result): string
     {
         return rtrim(config('app.frontend_url'), '/').'/order-result?order_id='.$order->id.'&payment='.$result;
+    }
+
+    private function markUnsuccessfulPayment(
+        Request $request,
+        ?string $transactionId,
+        string $paymentStatus,
+        string $orderStatus,
+        OrderInventoryService $inventory,
+    ): ?Order {
+        if (! $transactionId) {
+            return null;
+        }
+
+        return DB::transaction(function () use ($request, $transactionId, $paymentStatus, $orderStatus, $inventory) {
+            $payment = Payment::query()
+                ->where('transaction_id', $transactionId)
+                ->latest()
+                ->lockForUpdate()
+                ->first();
+
+            if (! $payment) {
+                return null;
+            }
+
+            $order = Order::query()->lockForUpdate()->findOrFail($payment->order_id);
+
+            if ($payment->status !== 'paid') {
+                $payment->update([
+                    'status' => $paymentStatus,
+                    'raw_response' => $request->all(),
+                ]);
+            }
+
+            if ($order->payment_status !== 'paid') {
+                $order->update([
+                    'payment_status' => $paymentStatus,
+                    'status' => $orderStatus,
+                ]);
+                $inventory->synchronizeReservation($order);
+            }
+
+            return $order;
+        });
     }
 }

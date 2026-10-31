@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\OrderInventoryService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,33 +25,53 @@ class OrderController extends Controller
         return OrderResource::collection($orders);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, OrderInventoryService $inventory)
     {
         $validated = $request->validate([
-            'shipping_address' => 'required|array',
-            'shipping_address.street' => 'required|string',
-            'shipping_address.city' => 'required|string',
-            'shipping_address.postal_code' => 'required|string',
+            'shipping_address' => 'required|array:street,city,postal_code,country,phone',
+            'shipping_address.street' => 'required|string|max:255',
+            'shipping_address.city' => 'required|string|max:255',
+            'shipping_address.postal_code' => 'required|string|max:50',
             'shipping_address.country' => 'required|string|in:Bangladesh,BD',
-            'shipping_address.phone' => 'required|string',
+            'shipping_address.phone' => 'required|string|max:50',
+            'payment_method' => 'sometimes|required|in:online,cod',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
+            'items.*' => 'required|array:product_id,quantity,price',
+            'items.*.product_id' => 'required|integer|exists:products,id',
+            'items.*.quantity' => 'required|integer|min:1|max:2147483647',
+            'payment_status' => 'prohibited',
+            'total_amount' => 'prohibited',
+            'delivery_charge' => 'prohibited',
+            'items.*.unit_price' => 'prohibited',
+            'items.*.subtotal' => 'prohibited',
         ]);
 
-        return DB::transaction(function () use ($request, $validated) {
+        return DB::transaction(function () use ($request, $validated, $inventory) {
             $totalAmount = 0;
             $orderItemsData = [];
 
-            // Extracting products
-            $productIds = collect($validated['items'])->pluck('product_id');
-            $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+            $productIds = collect($validated['items'])->pluck('product_id')->unique();
+            $products = Product::query()
+                ->whereIn('id', $productIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
             foreach ($validated['items'] as $item) {
                 $product = $products->get($item['product_id']);
+                if (! $product) {
+                    abort(422, 'One or more selected products are no longer available.');
+                }
 
                 $unitPrice = $product->price;
+                if ($unitPrice > intdiv(2147483647, $item['quantity'])) {
+                    abort(422, 'The order total exceeds the supported amount.');
+                }
                 $subtotal = $unitPrice * $item['quantity'];
+                if ($totalAmount > 2147483647 - $subtotal) {
+                    abort(422, 'The order total exceeds the supported amount.');
+                }
                 $totalAmount += $subtotal;
 
                 $orderItemsData[] = [
@@ -64,6 +85,9 @@ class OrderController extends Controller
             $deliveryCharge = strcasecmp(trim($validated['shipping_address']['city']), 'Dhaka') === 0
                 ? 70
                 : 120;
+            if ($totalAmount > 2147483647 - $deliveryCharge) {
+                abort(422, 'The order total exceeds the supported amount.');
+            }
             $totalAmount += $deliveryCharge;
 
             $request->user()->update(['address' => $validated['shipping_address']]);
@@ -76,13 +100,13 @@ class OrderController extends Controller
                 'delivery_charge' => $deliveryCharge,
                 'status' => 'pending',
                 'payment_status' => 'pending',
+                'payment_method' => $validated['payment_method'] ?? 'online',
+                'stock_reserved' => false,
                 'shipping_address' => $validated['shipping_address'],
             ]);
 
-            // Bulk insert Order Items
-            foreach ($orderItemsData as $itemData) {
-                $order->items()->create($itemData);
-            }
+            $order->items()->createMany($orderItemsData);
+            $inventory->reserve($order);
 
             return response()->json(new OrderResource($order->load('items.product')), 201);
 
@@ -99,13 +123,19 @@ class OrderController extends Controller
         return response()->json(new OrderResource($order->load('items.product')));
     }
 
-    public function updateStatus(Request $request, Order $order)
+    public function updateStatus(Request $request, Order $order, OrderInventoryService $inventory)
     {
         $validated = $request->validate([
-            'status' => 'required|in:pending, processing, completed, cancelled, failed',
+            'status' => 'required|in:pending,processing,completed,cancelled,failed',
         ]);
 
-        $order->update(['status' => $validated['status']]);
+        $order = DB::transaction(function () use ($order, $validated, $inventory) {
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            $lockedOrder->update(['status' => $validated['status']]);
+            $inventory->synchronizeReservation($lockedOrder);
+
+            return $lockedOrder;
+        });
 
         return response()->json([
             'message' => 'Order status updated successfully!',

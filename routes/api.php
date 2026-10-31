@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AiController;
 use App\Http\Controllers\Api\Auth\SocialAuthController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductQuestionController;
 use App\Http\Controllers\Api\ProductReviewController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\RecommendationController;
 use Illuminate\Support\Facades\Route;
 
@@ -91,6 +92,18 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
         // Admin Catalog management
         Route::middleware('role:admin')->group(function () {
+            Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
+            Route::get('/admin/products', [AdminController::class, 'products']);
+            Route::get('/admin/categories', [AdminController::class, 'categories']);
+            Route::get('/admin/orders', [AdminController::class, 'orders']);
+            Route::get('/admin/orders/{order}', [AdminController::class, 'showOrder']);
+            Route::get('/admin/order-options', [AdminController::class, 'orderOptions']);
+            Route::post('/admin/orders', [AdminController::class, 'createOrder']);
+            Route::put('/admin/orders/{order}', [AdminController::class, 'updateOrder']);
+            Route::get('/admin/questions', [AdminController::class, 'questions']);
+            Route::get('/admin/users', [AdminController::class, 'users']);
+            Route::post('/admin/users', [AdminController::class, 'createUser']);
+            Route::post('/admin/users/{user}/verify-email', [AdminController::class, 'verifyUserEmail']);
 
             // Products
             Route::post('/products', [ProductController::class, 'store']);
@@ -110,6 +123,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
             // SEO type Product description generator using GEMINI AI API
             Route::post('/ai/generate-description', [AiController::class, 'generateProductDescription']);
+            Route::post('/ai/generate-image', [AiController::class, 'generateProductImage']);
 
             // Answering the questions
             Route::patch('/questions/{question}/answer', [ProductQuestionController::class, 'answer']);

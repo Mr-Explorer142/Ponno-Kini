@@ -191,6 +191,11 @@ export default function ProductDetail() {
                             </span>
                         )}
                     </div>
+                    <p className={`text-sm ${Number(product.stock) > 0 ? "text-muted-foreground" : "font-medium text-destructive"}`}>
+                        {Number(product.stock) > 0
+                            ? t(":count in stock", { count: product.stock })
+                            : t("Out of stock")}
+                    </p>
                     <div className="border-t border-border pt-5">
                         <h2 className="mb-2 text-lg font-semibold">
                             {t("Product details")}

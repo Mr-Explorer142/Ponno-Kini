@@ -4,9 +4,11 @@ namespace App\Console\Commands;
 
 use App\Models\Order;
 use App\Notifications\OrderCancelNotification;
+use App\Services\OrderInventoryService;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 #[Signature('app:cancel-abandoned-orders')]
@@ -20,7 +22,7 @@ class CancelAbandonedOrders extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(OrderInventoryService $inventory)
     {
         $thresholdDate = now()->subDays(7);
 
@@ -32,10 +34,16 @@ class CancelAbandonedOrders extends Command
         $count = 0;
 
         foreach ($abandonedOrders as $order) {
-            $order->update([
-                'status' => 'cancelled',
-                'payment_status' => 'cancelled',
-            ]);
+            $order = DB::transaction(function () use ($order, $inventory) {
+                $order = Order::query()->lockForUpdate()->findOrFail($order->id);
+                $order->update([
+                    'status' => 'cancelled',
+                    'payment_status' => 'cancelled',
+                ]);
+                $inventory->synchronizeReservation($order);
+
+                return $order;
+            });
             $count++;
 
             // Notifying user about his order cancellation

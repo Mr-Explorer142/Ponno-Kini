@@ -121,6 +121,7 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|integer|min:0', // BDT, whole units
+            'stock' => 'sometimes|required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
         ]);
@@ -166,8 +167,10 @@ class ProductController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|integer|min:0', // BDT, whole units
+            'stock' => 'sometimes|required|integer|min:0',
             'category_id' => 'sometimes|required|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
+            'remove_image' => 'sometimes|boolean',
         ]);
 
         if (isset($validated['name'])) {
@@ -179,15 +182,18 @@ class ProductController extends Controller
         // Upload the new image first, so a failed upload keeps the old one
         if ($request->hasFile('image')) {
             $validated['image_path'] = $images->upload($request->file('image'));
+        } elseif ($validated['remove_image'] ?? false) {
+            $validated['image_path'] = null;
         }
 
         // Unset raw file object
         unset($validated['image']);
+        unset($validated['remove_image']);
 
         $product->update($validated);
 
         // Only delete the old image after the database update succeeded
-        if (isset($validated['image_path'])) {
+        if (array_key_exists('image_path', $validated)) {
             $images->delete($oldImage);
         }
 
@@ -204,6 +210,12 @@ class ProductController extends Controller
      */
     public function destroy(Product $product, ImageService $images)
     {
+        if ($product->orderItems()->exists()) {
+            return response()->json([
+                'message' => 'Products with order history cannot be deleted. Set the stock to zero instead.',
+            ], 422);
+        }
+
         $imagePath = $product->image_path;
 
         $product->delete();

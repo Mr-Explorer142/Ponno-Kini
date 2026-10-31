@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import OAuthCallback from "./pages/OAuthCallback";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Login from "./pages/Login";
@@ -14,6 +15,14 @@ import ProductCatalog from "./pages/ProductCatalog";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import OrderResult from "./pages/OrderResult";
+import AdminRoute from "./routes/AdminRoute";
+import AdminLayout from "./admin/AdminLayout";
+import AdminDashboard from "./admin/AdminDashboard";
+import AdminProducts from "./admin/AdminProducts";
+import AdminCategories from "./admin/AdminCategories";
+import AdminOrders from "./admin/AdminOrders";
+import AdminQuestions from "./admin/AdminQuestions";
+import AdminUsers from "./admin/AdminUsers";
 import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import { useAuthStore } from "./store/useAuthStore";
@@ -25,6 +34,8 @@ const Page = ({ title }) => <h1 className="text-3xl font-bold">{t(title)}</h1>;
 function App() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
     const { language } = useLocale();
+    const location = useLocation();
+    const isAdminPage = location.pathname.startsWith("/admin");
     const [theme, setTheme] = useState(() =>
         localStorage.getItem("ponno-kini-theme") === "dark" ? "dark" : "light",
     );
@@ -50,9 +61,25 @@ function App() {
             data-language={language}
             className="flex min-h-screen flex-col bg-background text-foreground"
         >
-            <Navbar theme={theme} onToggleTheme={toggleTheme} />
-            <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8">
+            {!isAdminPage && <Navbar theme={theme} onToggleTheme={toggleTheme} />}
+            <main
+                className={
+                    isAdminPage
+                        ? "w-full flex-1"
+                        : "mx-auto w-full min-w-0 max-w-7xl flex-1 px-4 py-5 sm:px-6 sm:py-8 lg:px-8"
+                }
+            >
                 <Routes>
+                    <Route path="/admin" element={<AdminRoute />}>
+                        <Route element={<AdminLayout />}>
+                            <Route index element={<AdminDashboard />} />
+                            <Route path="products" element={<AdminProducts />} />
+                            <Route path="categories" element={<AdminCategories />} />
+                            <Route path="orders" element={<AdminOrders />} />
+                            <Route path="questions" element={<AdminQuestions />} />
+                            <Route path="users" element={<AdminUsers />} />
+                        </Route>
+                    </Route>
                     {/* Public auth routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -85,7 +112,7 @@ function App() {
                     />
                 </Routes>
             </main>
-            <Footer />
+            {!isAdminPage && <Footer />}
         </div>
     );
 }

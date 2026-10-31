@@ -29,7 +29,12 @@ export default function OrderResult() {
                 if (!active) return;
                 const loadedOrder = response.data.data ?? response.data;
                 setOrder(loadedOrder);
-                if (loadedOrder.payment_status === "paid") clearCart();
+                if (
+                    loadedOrder.payment_status === "paid" ||
+                    loadedOrder.payment_method === "cod"
+                ) {
+                    clearCart();
+                }
             })
             .catch((requestError) => {
                 if (!active) return;
@@ -68,6 +73,7 @@ export default function OrderResult() {
     };
 
     const paid = order?.payment_status === "paid";
+    const codOrder = order?.payment_method === "cod" && paymentResult === "cod";
     const failed =
         paymentResult === "failed" ||
         paymentResult === "cancelled" ||
@@ -120,6 +126,35 @@ export default function OrderResult() {
                                     <ShoppingBag aria-hidden="true" />
                                     {t("Continue shopping")}
                                 </Link>
+                            </Button>
+                        </div>
+                    </>
+                ) : codOrder ? (
+                    <>
+                        <CheckCircle2 className="mx-auto size-14 text-green-600" />
+                        <h1 className="mt-4 text-3xl font-bold">
+                            {t("Your order has been placed")}
+                        </h1>
+                        <p className="mt-3 text-muted-foreground">
+                            {t("Pay cash when your order is delivered.")}
+                        </p>
+                        <div className="mt-6 rounded-xl bg-secondary/60 p-4 text-left text-sm">
+                            <p>
+                                <strong>{t("Order number:")}</strong>{" "}
+                                {order.order_number}
+                            </p>
+                            <p className="mt-1">
+                                <strong>{t("Order status:")}</strong>{" "}
+                                {t(order.status)}
+                            </p>
+                            <p className="mt-1">
+                                <strong>{t("Total due:")}</strong>{" "}
+                                {formatPrice(order.total_amount)}
+                            </p>
+                        </div>
+                        <div className="mt-6 flex justify-center">
+                            <Button asChild variant="outline">
+                                <Link to="/orders">{t("View your orders")}</Link>
                             </Button>
                         </div>
                     </>

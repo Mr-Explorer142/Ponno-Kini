@@ -5,6 +5,7 @@ export const useAuthStore = create((set) => ({
     user: null,
     token: localStorage.getItem("auth_token") || null,
     isAuthenticated: !!localStorage.getItem("auth_token"),
+    userLoaded: !localStorage.getItem("auth_token"),
     loading: false,
     error: null,
 
@@ -16,7 +17,7 @@ export const useAuthStore = create((set) => ({
             const { user, access_token: token } = response.data;
 
             localStorage.setItem("auth_token", token);
-            set({ user, token, isAuthenticated: true, loading: false });
+            set({ user, token, isAuthenticated: true, userLoaded: true, loading: false });
             return true;
         } catch (err) {
             set({
@@ -34,7 +35,7 @@ export const useAuthStore = create((set) => ({
             const { user, access_token: token } = response.data;
 
             localStorage.setItem("auth_token", token);
-            set({ user, token, isAuthenticated: true, loading: false });
+            set({ user, token, isAuthenticated: true, userLoaded: true, loading: false });
             return true;
         } catch (err) {
             set({
@@ -59,9 +60,9 @@ export const useAuthStore = create((set) => ({
             // Adjust if your /me response has a different shape
             const user = response.data.user ?? response.data;
 
-            set({ user, token, isAuthenticated: true, loading: false });
+            set({ user, token, isAuthenticated: true, userLoaded: true, loading: false });
             return true;
-        } catch (err) {
+        } catch {
             localStorage.removeItem("auth_token");
             set({
                 user: null,
@@ -80,7 +81,7 @@ export const useAuthStore = create((set) => ({
         const token = localStorage.getItem("auth_token");
 
         if (!token) {
-            set({ user: null, token: null, isAuthenticated: false });
+            set({ user: null, token: null, isAuthenticated: false, userLoaded: true });
             return false;
         }
 
@@ -88,7 +89,7 @@ export const useAuthStore = create((set) => ({
             const response = await api.get("/me");
             const user = response.data.user ?? response.data;
 
-            set({ user, token, isAuthenticated: true });
+            set({ user, token, isAuthenticated: true, userLoaded: true });
             return true;
         } catch (err) {
             // Only log out if the token is actually invalid.
@@ -97,6 +98,7 @@ export const useAuthStore = create((set) => ({
                 localStorage.removeItem("auth_token");
                 set({ user: null, token: null, isAuthenticated: false });
             }
+            set({ userLoaded: true });
             return false;
         }
     },
@@ -108,7 +110,7 @@ export const useAuthStore = create((set) => ({
             console.error("Logout error", err);
         } finally {
             localStorage.removeItem("auth_token");
-            set({ user: null, token: null, isAuthenticated: false });
+            set({ user: null, token: null, isAuthenticated: false, userLoaded: true });
         }
     },
 }));

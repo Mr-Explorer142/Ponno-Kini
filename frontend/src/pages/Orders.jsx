@@ -127,7 +127,7 @@ export default function Orders() {
                     <p className="mt-1 text-sm text-muted-foreground">
                         {t("Your completed checkouts will appear here.")}
                     </p>
-                    <Button asChild className="mt-5">
+                    <Button asChild className="mt-5 inline-flex items-center gap-2">
                         <Link to="/products">
                             <ShoppingBag aria-hidden="true" />
                             {t("Browse products")}

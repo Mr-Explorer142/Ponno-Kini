@@ -41,6 +41,7 @@ class ProductFactory extends Factory
 
         return array_merge($this->attributesFor($category), [
             'price' => fake()->numberBetween(10, 15000),
+            'stock' => 3,
         ]);
     }
 

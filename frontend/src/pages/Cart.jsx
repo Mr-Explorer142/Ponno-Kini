@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { MessageCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/api/axios";
@@ -19,10 +19,19 @@ const emptyAddress = {
     phone: "",
 };
 
+const manualChatLinks = {
+    Messenger: import.meta.env.VITE_ADMIN_MESSENGER_URL || "https://www.messenger.com/",
+    Instagram: import.meta.env.VITE_ADMIN_INSTAGRAM_URL || "https://www.instagram.com/direct/inbox/",
+    WhatsApp: import.meta.env.VITE_ADMIN_WHATSAPP_URL || "https://wa.me/",
+    Facebook: import.meta.env.VITE_ADMIN_FACEBOOK_URL || "https://www.facebook.com/messages/",
+};
+
 export default function Cart() {
     const items = useCartStore((state) => state.items);
     const updateQuantity = useCartStore((state) => state.updateQuantity);
     const removeItem = useCartStore((state) => state.removeItem);
+    const updateProduct = useCartStore((state) => state.updateProduct);
+    const clearCart = useCartStore((state) => state.clearCart);
     const { user, isAuthenticated } = useAuthStore();
     const [addressOverrides, setAddressOverrides] = useState({});
     const address = {
@@ -33,6 +42,45 @@ export default function Cart() {
     };
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("online");
+    const [checkedProductIds, setCheckedProductIds] = useState("");
+    const [stockCheckError, setStockCheckError] = useState("");
+    const [manualNotice, setManualNotice] = useState("");
+    const cartProductIds = items.map(({ product }) => product.id).join(",");
+    const stockChecking = Boolean(cartProductIds) && checkedProductIds !== cartProductIds;
+
+    useEffect(() => {
+        if (!cartProductIds) return undefined;
+
+        let active = true;
+        const currentItems = useCartStore.getState().items;
+        Promise.resolve().then(() => {
+            if (active) setStockCheckError("");
+        });
+
+        Promise.all(currentItems.map(async ({ product }) => {
+            try {
+                const response = await api.get(`/product/${product.id}`);
+                if (active) updateProduct(response.data.data ?? response.data);
+            } catch (requestError) {
+                if (!active) return;
+                if (requestError.response?.status === 404) {
+                    updateProduct({ ...product, stock: 0 });
+                } else {
+                    setStockCheckError(
+                        requestError.response?.data?.message ||
+                            "Current stock could not be checked. Please retry before ordering.",
+                    );
+                }
+            }
+        })).finally(() => {
+            if (active) setCheckedProductIds(cartProductIds);
+        });
+
+        return () => {
+            active = false;
+        };
+    }, [cartProductIds, updateProduct]);
 
     const subtotal = items.reduce(
         (total, item) => total + Number(item.product.price) * item.quantity,
@@ -41,6 +89,10 @@ export default function Cart() {
     const deliveryCharge =
         address.city.trim().toLowerCase() === "dhaka" ? 70 : 120;
     const total = subtotal + (items.length ? deliveryCharge : 0);
+    const hasAvailableStock = items.every(
+        ({ product, quantity }) =>
+            Number(product.stock) >= quantity && Number(product.stock) > 0,
+    );
 
     const updateAddress = (event) => {
         const { name, value } = event.target;
@@ -49,18 +101,33 @@ export default function Cart() {
 
     const proceedToPayment = async (event) => {
         event.preventDefault();
+        if (stockChecking || stockCheckError || !hasAvailableStock) {
+            setError(
+                stockCheckError ||
+                    "One or more products no longer have enough stock. Update your cart and try again.",
+            );
+            return;
+        }
         setSubmitting(true);
         setError("");
 
         try {
             const orderResponse = await api.post("/orders", {
                 shipping_address: address,
+                payment_method: paymentMethod,
                 items: items.map(({ product, quantity }) => ({
                     product_id: product.id,
                     quantity,
                 })),
             });
             const order = orderResponse.data.data ?? orderResponse.data;
+            if (paymentMethod === "cod") {
+                clearCart();
+                window.location.assign(
+                    `/order-result?order_id=${order.id}&payment=cod`,
+                );
+                return;
+            }
             const paymentResponse = await api.post(`/orders/${order.id}/pay`);
             window.location.assign(paymentResponse.data.payment_url);
         } catch (requestError) {
@@ -76,6 +143,44 @@ export default function Cart() {
                     "Checkout could not be started. Please check your details and try again.",
             );
             setSubmitting(false);
+        }
+    };
+
+    const manualOrderMessage = [
+        "Manual order request",
+        ...items.map(({ product, quantity }) =>
+            `${product.name} × ${quantity} — ${formatPrice(Number(product.price) * quantity)}`,
+        ),
+        `Subtotal: ${formatPrice(subtotal)}`,
+        `Delivery: ${formatPrice(deliveryCharge)}`,
+        `Total: ${formatPrice(total)}`,
+        `Shipping address: ${[
+            address.street,
+            address.city,
+            address.postal_code,
+            address.country,
+            address.phone,
+        ].filter(Boolean).join(", ") || "Not provided"}`,
+    ].join("\n");
+
+    const openManualChat = async (platform) => {
+        setManualNotice("");
+        try {
+            const destination = new URL(manualChatLinks[platform]);
+            if (platform === "WhatsApp") {
+                destination.searchParams.set("text", manualOrderMessage);
+            }
+            window.open(destination.toString(), "_blank", "noopener,noreferrer");
+            await navigator.clipboard.writeText(manualOrderMessage);
+            setManualNotice(
+                t("Order details copied. Paste them into your :platform chat.", {
+                    platform,
+                }),
+            );
+        } catch {
+            setManualNotice(
+                "The chat opened. Copy the order details below and paste them into the conversation.",
+            );
         }
     };
 
@@ -134,6 +239,11 @@ export default function Cart() {
                                 <p className="mt-1 text-sm text-muted-foreground">
                                     {formatPrice(product.price)} {t("each")}
                                 </p>
+                                <p className={`mt-1 text-xs ${Number(product.stock) > 0 ? "text-muted-foreground" : "font-medium text-destructive"}`}>
+                                    {Number(product.stock) > 0
+                                        ? t(":count in stock", { count: product.stock })
+                                        : t("Out of stock")}
+                                </p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Button
@@ -152,7 +262,7 @@ export default function Cart() {
                                 <Input
                                     type="number"
                                     min="1"
-                                    max="99"
+                                    max={Math.min(99, Number(product.stock) || 99)}
                                     value={quantity}
                                     aria-label={t(":product quantity", {
                                         product: product.name,
@@ -163,6 +273,7 @@ export default function Cart() {
                                             product.id,
                                             Math.min(
                                                 99,
+                                                Number(product.stock) || 99,
                                                 Math.max(
                                                     0,
                                                     Number(event.target.value) || 0,
@@ -178,7 +289,7 @@ export default function Cart() {
                                     aria-label={t("Increase :product quantity", {
                                         product: product.name,
                                     })}
-                                    disabled={quantity >= 99}
+                                    disabled={quantity >= Math.min(99, Number(product.stock) || 0)}
                                     onClick={() =>
                                         updateQuantity(product.id, quantity + 1)
                                     }
@@ -265,6 +376,32 @@ export default function Cart() {
                         />
                     </label>
 
+                    <fieldset className="space-y-2 border-t border-border pt-4">
+                        <legend className="text-sm font-semibold">
+                            {t("Payment method")}
+                        </legend>
+                        <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="online"
+                                checked={paymentMethod === "online"}
+                                onChange={() => setPaymentMethod("online")}
+                            />
+                            <span>{t("Online payment")} (SSLCommerz)</span>
+                        </label>
+                        <label className="flex items-center gap-3 rounded-lg border border-border p-3 text-sm">
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="cod"
+                                checked={paymentMethod === "cod"}
+                                onChange={() => setPaymentMethod("cod")}
+                            />
+                            <span>{t("Cash on delivery")}</span>
+                        </label>
+                    </fieldset>
+
                     <div className="space-y-2 border-t border-border pt-4 text-sm">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">
@@ -301,22 +438,74 @@ export default function Cart() {
                         <Button
                             type="submit"
                             className="w-full"
-                            disabled={submitting}
+                            disabled={submitting || stockChecking || Boolean(stockCheckError) || !hasAvailableStock}
                         >
                             {submitting
-                                ? t("Connecting to payment...")
-                                : t("Proceed to payment")}
+                                ? paymentMethod === "cod"
+                                    ? t("Placing order...")
+                                    : t("Connecting to payment...")
+                                : paymentMethod === "cod"
+                                    ? t("Place COD order")
+                                    : t("Proceed to payment")}
                         </Button>
                     )}
 
-                    {error && (
+                    {(error || stockCheckError) && (
                         <p
                             role="alert"
                             className="text-sm text-destructive"
                         >
-                            {t(error)}
+                            {t(error || stockCheckError)}
                         </p>
                     )}
+                    {stockChecking && (
+                        <p role="status" className="text-sm text-muted-foreground">
+                            {t("Checking current stock...")}
+                        </p>
+                    )}
+                    {!hasAvailableStock && !stockChecking && (
+                        <p role="alert" className="text-sm text-destructive">
+                            {t("Reduce quantities or remove unavailable products before ordering.")}
+                        </p>
+                    )}
+
+                    <div className="space-y-3 border-t border-border pt-4">
+                        <div>
+                            <h3 className="font-semibold">{t("Order manually via chat")}</h3>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {t("We will copy your cart details so you can paste them into the selected chat. This does not reserve stock or place an order.")}
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                            {Object.keys(manualChatLinks).map((platform) => (
+                                <Button
+                                    key={platform}
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => openManualChat(platform)}
+                                >
+                                    <MessageCircle aria-hidden="true" />
+                                    {platform}
+                                </Button>
+                            ))}
+                        </div>
+                        {manualNotice && (
+                            <p role="status" className="text-sm text-muted-foreground">
+                                {manualNotice}
+                            </p>
+                        )}
+                        <details className="text-sm">
+                            <summary className="cursor-pointer font-medium">
+                                {t("View order details to copy")}
+                            </summary>
+                            <textarea
+                                readOnly
+                                value={manualOrderMessage}
+                                aria-label={t("Manual order details")}
+                                className="mt-2 min-h-32 w-full rounded-lg border border-input bg-background p-3 text-xs"
+                            />
+                        </details>
+                    </div>
                 </form>
             </div>
         </div>

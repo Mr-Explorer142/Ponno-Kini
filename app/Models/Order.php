@@ -16,11 +16,14 @@ class Order extends Model
         'delivery_charge',
         'status',
         'payment_status',
+        'payment_method',
+        'stock_reserved',
         'shipping_address',
     ];
 
     protected $casts = [
         'shipping_address' => 'array',
+        'stock_reserved' => 'boolean',
     ];
 
     public function user()
