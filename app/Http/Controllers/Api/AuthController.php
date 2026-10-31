@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\EmailVerificationCodeNotification;
+use App\Services\EmailVerificationCodeService;
 use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,6 +16,10 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    public function __construct(private readonly EmailVerificationCodeService $verificationCodes)
+    {
+    }
+
     public function register(Request $request)
     {
 
@@ -30,6 +35,7 @@ class AuthController extends Controller
             'email' => $validated['email'],
             'password' => $validated['password'],
         ]);
+        $user->forceFill(['verification_purpose' => 'email_verification'])->save();
 
         $user->assignRole('customer');
 
@@ -102,6 +108,12 @@ class AuthController extends Controller
                 return response()->json(['message' => 'Email address is already verified.'], 400);
             }
 
+            if ($user->verification_purpose && $user->verification_purpose !== 'email_verification') {
+                return response()->json([
+                    'message' => 'Complete the pending profile change using its verification code first.',
+                ], 422);
+            }
+
             if ($user->verification_attempts >= 5) {
                 return response()->json([
                     'message' => 'Too many incorrect codes. Request a new code to try again.',
@@ -130,6 +142,7 @@ class AuthController extends Controller
                 'verification_code_hash' => null,
                 'verification_code_expires_at' => null,
                 'verification_attempts' => 0,
+                'verification_purpose' => null,
             ])->save();
 
             event(new Verified($user));
@@ -151,6 +164,13 @@ class AuthController extends Controller
                 return ['error' => 'Email address is already verified.', 'status' => 400];
             }
 
+            if ($user->verification_purpose && $user->verification_purpose !== 'email_verification') {
+                return [
+                    'error' => 'Complete the pending profile change using its verification code first.',
+                    'status' => 422,
+                ];
+            }
+
             $retryAfter = $user->verification_code_sent_at
                 ? max(0, 60 - (int) $user->verification_code_sent_at->diffInSeconds(now()))
                 : 0;
@@ -165,7 +185,7 @@ class AuthController extends Controller
 
             return [
                 'user' => $user,
-                'code' => $this->createVerificationCode($user),
+                'code' => $this->verificationCodes->issue($user),
             ];
         });
 
@@ -201,37 +221,8 @@ class AuthController extends Controller
 
     private function sendVerificationCode(User $user): void
     {
-        $code = $this->createVerificationCode($user);
+        $code = $this->verificationCodes->issue($user);
         $user->notify(new EmailVerificationCodeNotification($code));
-    }
-
-    private function createVerificationCode(User $user): string
-    {
-        $letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-        $digits = '23456789';
-        $characters = $letters . $digits;
-        $code = $letters[random_int(0, strlen($letters) - 1)]
-            . $digits[random_int(0, strlen($digits) - 1)];
-
-        for ($index = 0; $index < 4; $index++) {
-            $code .= $characters[random_int(0, strlen($characters) - 1)];
-        }
-
-        $code = str_split($code);
-        for ($index = count($code) - 1; $index > 0; $index--) {
-            $swapIndex = random_int(0, $index);
-            [$code[$index], $code[$swapIndex]] = [$code[$swapIndex], $code[$index]];
-        }
-        $code = implode('', $code);
-
-        $user->forceFill([
-            'verification_code_hash' => Hash::make($code),
-            'verification_code_expires_at' => now()->addMinutes(10),
-            'verification_code_sent_at' => now(),
-            'verification_attempts' => 0,
-        ])->save();
-
-        return $code;
     }
 
     // 7. Sending Reset Password Email Link

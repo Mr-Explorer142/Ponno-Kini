@@ -13,7 +13,17 @@ use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 #[Fillable(['name', 'email', 'password', 'provider', 'provider_id', 'avatar', 'email_verified_at', 'address'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden([
+    'password',
+    'remember_token',
+    'pending_email',
+    'pending_password_hash',
+    'verification_code_hash',
+    'verification_code_expires_at',
+    'verification_code_sent_at',
+    'verification_attempts',
+    'verification_purpose',
+])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */

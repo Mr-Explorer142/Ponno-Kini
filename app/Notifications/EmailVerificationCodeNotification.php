@@ -22,9 +22,9 @@ class EmailVerificationCodeNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Verify your PonnoKini email address')
-            ->greeting('Welcome to PonnoKini!')
-            ->line('Enter this code on the verification page to confirm your email address:')
+            ->subject('Your PonnoKini verification code')
+            ->greeting('Hello!')
+            ->line('Use this code to verify your email address or confirm your account change:')
             ->line($this->code)
             ->line('This code expires in 10 minutes. If you did not create an account, you can ignore this email.');
     }

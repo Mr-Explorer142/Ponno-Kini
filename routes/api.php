@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductQuestionController;
 use App\Http\Controllers\Api\ProductReviewController;
@@ -60,6 +61,15 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
     // Auth endpoints
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+
+    // Profile management
+    Route::patch('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile/email/request', [ProfileController::class, 'requestEmailChange']);
+    Route::post('/profile/email/verify', [ProfileController::class, 'verifyEmailChange']);
+    Route::post('/profile/email/resend', [ProfileController::class, 'resendEmailChangeCode']);
+    Route::post('/profile/password/request', [ProfileController::class, 'requestPasswordChange']);
+    Route::post('/profile/password/verify', [ProfileController::class, 'verifyPasswordChange']);
+    Route::post('/profile/password/resend', [ProfileController::class, 'resendPasswordChangeCode']);
 
     // verified email routes
     Route::middleware('verified')->group(function () {

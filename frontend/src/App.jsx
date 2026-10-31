@@ -7,6 +7,7 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
+import Orders from "./pages/Orders";
 import VerifyEmail from "./pages/VerifyEmail";
 import Home from "./pages/Home";
 import ProductCatalog from "./pages/ProductCatalog";
@@ -67,6 +68,7 @@ function App() {
                     <Route element={<ProtectedRoute />}>
                         <Route path="/verify-email" element={<VerifyEmail />} />
                         <Route path="/profile" element={<Profile />} />
+                        <Route path="/orders" element={<Orders />} />
                         <Route path="/order-result" element={<OrderResult />} />
                     </Route>
 

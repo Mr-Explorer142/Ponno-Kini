@@ -43,6 +43,7 @@ export default function Navbar({ theme, onToggleTheme }) {
     );
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
+    const [accountMenuOpen, setAccountMenuOpen] = useState(false);
     const menuButtonRef = useRef(null);
     const closeButtonRef = useRef(null);
     const drawerRef = useRef(null);
@@ -57,6 +58,7 @@ export default function Navbar({ theme, onToggleTheme }) {
 
         const handleKeyDown = (event) => {
             if (event.key === "Escape") {
+                setAccountMenuOpen(false);
                 setMenuOpen(false);
             }
         };
@@ -73,6 +75,7 @@ export default function Navbar({ theme, onToggleTheme }) {
     const handleLogout = async () => {
         await logout();
         setMenuOpen(false);
+        setAccountMenuOpen(false);
         navigate("/login");
     };
 
@@ -131,21 +134,51 @@ export default function Navbar({ theme, onToggleTheme }) {
 
                     {isAuthenticated ? (
                         <>
-                            <Button
-                                asChild
-                                variant="ghost"
-                                className="max-w-full"
-                            >
-                                <Link
-                                    to="/profile"
-                                    className="inline-flex min-w-0 items-center gap-2 whitespace-normal"
+                            <div className="relative">
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    className="max-w-full"
+                                    aria-expanded={accountMenuOpen}
+                                    aria-haspopup="menu"
+                                    onClick={() =>
+                                        setAccountMenuOpen((open) => !open)
+                                    }
                                 >
                                     <User />
                                     <span className="break-all">
                                         {user?.name ?? "Profile"}
                                     </span>
-                                </Link>
-                            </Button>
+                                </Button>
+                                {accountMenuOpen && (
+                                    <div
+                                        role="menu"
+                                        aria-label="Account options"
+                                        className="absolute right-0 top-full z-20 mt-1 min-w-40 rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-lg"
+                                    >
+                                        <Link
+                                            role="menuitem"
+                                            to="/profile"
+                                            className="block rounded-md px-3 py-2 text-sm hover:bg-muted"
+                                            onClick={() =>
+                                                setAccountMenuOpen(false)
+                                            }
+                                        >
+                                            Profile
+                                        </Link>
+                                        <Link
+                                            role="menuitem"
+                                            to="/orders"
+                                            className="block rounded-md px-3 py-2 text-sm hover:bg-muted"
+                                            onClick={() =>
+                                                setAccountMenuOpen(false)
+                                            }
+                                        >
+                                            Orders
+                                        </Link>
+                                    </div>
+                                )}
+                            </div>
                             <Button
                                 className="cursor-pointer"
                                 variant="outline"
@@ -270,21 +303,50 @@ export default function Navbar({ theme, onToggleTheme }) {
                             {isAuthenticated ? (
                                 <>
                                     <Button
-                                        asChild
+                                        type="button"
                                         variant="ghost"
                                         className="max-w-full justify-start"
+                                        aria-expanded={accountMenuOpen}
+                                        aria-haspopup="menu"
+                                        onClick={() =>
+                                            setAccountMenuOpen((open) => !open)
+                                        }
                                     >
-                                        <Link
-                                            to="/profile"
-                                            className="inline-flex min-w-0 items-center gap-2 whitespace-normal"
-                                            onClick={() => setMenuOpen(false)}
-                                        >
-                                            <User aria-hidden="true" />
-                                            <span className="break-all">
-                                                {user?.name ?? "Profile"}
-                                            </span>
-                                        </Link>
+                                        <User aria-hidden="true" />
+                                        <span className="break-all">
+                                            {user?.name ?? "Profile"}
+                                        </span>
                                     </Button>
+                                    {accountMenuOpen && (
+                                        <div
+                                            role="menu"
+                                            aria-label="Account options"
+                                            className="ml-4 flex flex-col border-l border-border pl-3"
+                                        >
+                                            <Link
+                                                role="menuitem"
+                                                to="/profile"
+                                                className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                                                onClick={() => {
+                                                    setAccountMenuOpen(false);
+                                                    setMenuOpen(false);
+                                                }}
+                                            >
+                                                Profile
+                                            </Link>
+                                            <Link
+                                                role="menuitem"
+                                                to="/orders"
+                                                className="rounded-md px-3 py-2 text-sm hover:bg-muted"
+                                                onClick={() => {
+                                                    setAccountMenuOpen(false);
+                                                    setMenuOpen(false);
+                                                }}
+                                            >
+                                                Orders
+                                            </Link>
+                                        </div>
+                                    )}
                                     <Button
                                         type="button"
                                         variant="outline"
