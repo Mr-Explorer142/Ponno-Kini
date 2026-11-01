@@ -10,7 +10,9 @@ use App\Services\OrderInventoryService;
 use App\Services\SSLCommerzService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class PaymentController extends Controller
 {
@@ -48,7 +50,7 @@ class PaymentController extends Controller
             return $lockedOrder;
         });
 
-        $transactionId = $order->order_number.'-'.Str::upper(Str::random(8));
+        $transactionId = $order->order_number . '-' . Str::upper(Str::random(8));
         $result = $this->sslCommerz->initiatePayment($order, $transactionId);
 
         if (
@@ -93,42 +95,20 @@ class PaymentController extends Controller
             return redirect()->away($this->frontendResultUrl($order, 'success'));
         }
 
+        // Gateway validation happens outside any DB transaction (network call)
         if ($valId && $this->sslCommerz->validatePayment($valId, $tranId, $order->total_amount)) {
-            DB::transaction(function () use ($order, $payment, $valId, $cardType, $request) {
-                // Update Payment Log
-                if ($payment) {
-                    $payment->update([
-                        'status' => 'paid',
-                        'val_id' => $valId,
-                        'card_type' => $cardType,
-                        'raw_response' => $request->all(),
-                    ]);
-                }
-
-                // Update Master Order
-                $order->update([
-                    'payment_status' => 'paid',
-                    'status' => 'processing',
-                ]);
-
-                $order->user->notify(new PaymentSuccessfulNotification($order));
-            });
+            $this->markPaid($payment, $valId, $cardType, $request);
 
             return redirect()->away($this->frontendResultUrl($order, 'success'));
         }
 
-        if ($payment && $payment->status !== 'paid') {
-            $payment->update(['status' => 'failed', 'raw_response' => $request->all()]);
-        }
-        $this->markUnsuccessfulPayment(
-            $request,
-            $tranId,
-            'failed',
-            'failed',
-            $inventory,
-        );
+        $this->markUnsuccessfulPayment($request, $tranId, 'failed', 'failed', $inventory);
 
-        return redirect()->away($this->frontendResultUrl($order, 'failed'));
+        // The IPN webhook may have confirmed the payment in the meantime
+        $order->refresh();
+        $result = $order->payment_status === 'paid' ? 'success' : 'failed';
+
+        return redirect()->away($this->frontendResultUrl($order, $result));
     }
 
     // 3. Fail Callback
@@ -173,23 +153,7 @@ class PaymentController extends Controller
         }
 
         if ($status === 'VALID' && $valId && $this->sslCommerz->validatePayment($valId, $tranId, $order->total_amount)) {
-            DB::transaction(function () use ($order, $payment, $valId, $cardType, $request) {
-                if ($payment) {
-                    $payment->update([
-                        'status' => 'paid',
-                        'val_id' => $valId,
-                        'card_type' => $cardType,
-                        'raw_response' => $request->all(),
-                    ]);
-                }
-
-                $order->update([
-                    'payment_status' => 'paid',
-                    'status' => 'processing',
-                ]);
-
-                $order->user->notify(new PaymentSuccessfulNotification($order));
-            });
+            $this->markPaid($payment, $valId, $cardType, $request);
 
             return response()->json(['message' => 'IPN Processed Successfully']);
         }
@@ -199,7 +163,63 @@ class PaymentController extends Controller
 
     private function frontendResultUrl(Order $order, string $result): string
     {
-        return rtrim(config('app.frontend_url'), '/').'/order-result?order_id='.$order->id.'&payment='.$result;
+        return rtrim(config('app.frontend_url'), '/') . '/order-result?order_id=' . $order->id . '&payment=' . $result;
+    }
+
+    /**
+     * Marks a payment and its order as paid, exactly once.
+     *
+     * The success callback and the IPN webhook can arrive at the same time,
+     * so both rows are locked and re-checked inside the transaction. The
+     * notification is sent only AFTER the transaction commits, so a mail
+     * failure can never roll back a payment the customer has already made.
+     */
+    private function markPaid(Payment $payment, string $valId, ?string $cardType, Request $request): bool
+    {
+        $order = DB::transaction(function () use ($payment, $valId, $cardType, $request) {
+            // Lock order: payment first, then order (same as markUnsuccessfulPayment)
+            $lockedPayment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+            $lockedOrder = Order::query()->lockForUpdate()->findOrFail($lockedPayment->order_id);
+
+            if ($lockedPayment->status === 'paid' || $lockedOrder->payment_status === 'paid') {
+                return null; // already processed by the other callback
+            }
+
+            $lockedPayment->update([
+                'status' => 'paid',
+                'val_id' => $valId,
+                'card_type' => $cardType,
+                'raw_response' => $request->all(),
+            ]);
+
+            $lockedOrder->update([
+                'payment_status' => 'paid',
+                'status' => 'processing',
+            ]);
+
+            return $lockedOrder;
+        });
+
+        if (! $order) {
+            return false;
+        }
+
+        $this->notifyPaymentSuccess($order);
+
+        return true;
+    }
+
+    private function notifyPaymentSuccess(Order $order): void
+    {
+        try {
+            $order->loadMissing('user');
+            $order->user?->notify(new PaymentSuccessfulNotification($order));
+        } catch (Throwable $e) {
+            Log::error('Payment success notification failed', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function markUnsuccessfulPayment(
