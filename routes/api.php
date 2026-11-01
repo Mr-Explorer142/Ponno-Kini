@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AdminController;
 use App\Http\Controllers\Api\Admin\AiController;
+use App\Http\Controllers\Api\Admin\DashboardController;
 use App\Http\Controllers\Api\Auth\SocialAuthController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
@@ -92,6 +93,20 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
         // Admin Catalog management
         Route::middleware('role:admin')->group(function () {
+            Route::prefix('/admin/stats')->controller(DashboardController::class)->group(function () {
+                Route::get('/summary', 'summary');
+                Route::get('/sales', 'sales');
+                Route::get('/orders-by-status', 'ordersByStatus');
+                Route::get('/payment-methods', 'paymentMethods');
+                Route::get('/payment-status', 'paymentStatus');
+                Route::get('/top-products', 'topProducts');
+                Route::get('/sales-by-category', 'salesByCategory');
+                Route::get('/sales-by-city', 'salesByCity');
+                Route::get('/new-customers', 'newCustomers');
+                Route::get('/ratings', 'ratings');
+                Route::get('/orders-heatmap', 'ordersHeatmap');
+            });
+
             Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
             Route::get('/admin/products', [AdminController::class, 'products']);
             Route::get('/admin/categories', [AdminController::class, 'categories']);

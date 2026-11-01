@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
     LogOut,
+    LayoutDashboard,
     Menu,
     Moon,
     Search,
@@ -79,6 +80,9 @@ function CatalogSearch({ search, onSubmit }) {
 
 export default function Navbar({ theme, onToggleTheme }) {
     const { isAuthenticated, user, logout } = useAuthStore();
+    const isAdmin = user?.roles?.some((role) =>
+        typeof role === "string" ? role === "admin" : role?.name === "admin",
+    );
     const cartCount = useCartStore((state) =>
         state.items.reduce((total, item) => total + item.quantity, 0),
     );
@@ -200,6 +204,15 @@ export default function Navbar({ theme, onToggleTheme }) {
                             {t("Catalog")}
                         </Link>
                     </Button>
+                    {isAdmin && (
+                        <Link
+                            to="/admin"
+                            className="inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                            <LayoutDashboard aria-hidden="true" />
+                            {t("Admin")}
+                        </Link>
+                    )}
 
                     {isAuthenticated ? (
                         <>
@@ -355,6 +368,17 @@ export default function Navbar({ theme, onToggleTheme }) {
                                     {t("Catalog")}
                                 </Link>
                             </Button>
+
+                            {isAdmin && (
+                                <Link
+                                    to="/admin"
+                                    className="inline-flex items-center gap-2 rounded-lg px-2.5 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                                    onClick={() => setMenuOpen(false)}
+                                >
+                                    <LayoutDashboard aria-hidden="true" />
+                                    {t("Admin")}
+                                </Link>
+                            )}
 
                             {isAuthenticated ? (
                                 <>
