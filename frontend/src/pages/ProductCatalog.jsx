@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { ArrowDownWideNarrow, SlidersHorizontal, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
@@ -17,49 +17,35 @@ const SORT_OPTIONS = [
 
 function CatalogFilters({
     searchParams,
-    setSearchParams,
     updateFilter,
     categories,
+    onApply,
+    onClose,
+    mobile = false,
 }) {
-    const [search, setSearch] = useState(searchParams.get("search") ?? "");
-    const [minPrice, setMinPrice] = useState(
-        searchParams.get("min_price") ?? "",
-    );
-    const [maxPrice, setMaxPrice] = useState(
-        searchParams.get("max_price") ?? "",
-    );
-
-    const handleSearch = (event) => {
-        event.preventDefault();
-        const nextParams = new URLSearchParams(searchParams);
-        if (search.trim()) nextParams.set("search", search.trim());
-        else nextParams.delete("search");
-        if (minPrice) nextParams.set("min_price", minPrice);
-        else nextParams.delete("min_price");
-        if (maxPrice) nextParams.set("max_price", maxPrice);
-        else nextParams.delete("max_price");
-        nextParams.delete("page");
-        setSearchParams(nextParams);
-    };
-
     return (
         <form
-            onSubmit={handleSearch}
-            className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:grid-cols-2 lg:grid-cols-[minmax(14rem,2fr)_minmax(10rem,1fr)_repeat(2,minmax(7rem,0.7fr))_auto] lg:items-end"
+            onSubmit={onApply}
+            className={`space-y-4 rounded-2xl border border-border bg-card p-4 ${
+                mobile
+                    ? ""
+                    : "lg:grid lg:grid-cols-[minmax(12rem,1.5fr)_repeat(2,minmax(8rem,1fr))_auto] lg:items-end lg:gap-4 lg:space-y-0"
+            }`}
         >
-            <label className="flex flex-col gap-2 text-sm font-medium">
-                {t("Search products")}
-                <span className="relative block">
-                    <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        type="search"
-                        value={search}
-                        onChange={(event) => setSearch(event.target.value)}
-                        placeholder={t("Name or description")}
-                        className="pl-9"
-                    />
-                </span>
-            </label>
+            <div className={`flex items-center justify-between ${mobile ? "" : "lg:col-span-full"}`}>
+                <h2 className="font-semibold">{t("Filters")}</h2>
+                {mobile && (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={t("Close filters")}
+                        onClick={onClose}
+                    >
+                        <X aria-hidden="true" />
+                    </Button>
+                )}
+            </div>
 
             <label className="flex flex-col gap-2 text-sm font-medium">
                 {t("Category")}
@@ -84,8 +70,8 @@ function CatalogFilters({
                 <Input
                     type="number"
                     min="0"
-                    value={minPrice}
-                    onChange={(event) => setMinPrice(event.target.value)}
+                    name="min_price"
+                    defaultValue={searchParams.get("min_price") ?? ""}
                     placeholder="৳0"
                 />
             </label>
@@ -94,13 +80,13 @@ function CatalogFilters({
                 <Input
                     type="number"
                     min="0"
-                    value={maxPrice}
-                    onChange={(event) => setMaxPrice(event.target.value)}
+                    name="max_price"
+                    defaultValue={searchParams.get("max_price") ?? ""}
                     placeholder={t("Any")}
                 />
             </label>
 
-            <Button type="submit" className="h-10">
+            <Button type="submit" className="h-10 w-full">
                 <SlidersHorizontal aria-hidden="true" />
                 {t("Apply")}
             </Button>
@@ -110,8 +96,8 @@ function CatalogFilters({
 
 function ProductSkeleton() {
     return (
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            {Array.from({ length: 8 }, (_, index) => (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
+            {Array.from({ length: 20 }, (_, index) => (
                 <div
                     key={index}
                     className="aspect-[4/5] animate-pulse rounded-2xl bg-secondary"
@@ -125,13 +111,13 @@ export default function ProductCatalog() {
     const [searchParams, setSearchParams] = useSearchParams();
     const queryString = searchParams.toString();
     const filterKey = JSON.stringify([
-        searchParams.get("search") ?? "",
         searchParams.get("min_price") ?? "",
         searchParams.get("max_price") ?? "",
     ]);
     const [result, setResult] = useState(null);
     const [categories, setCategories] = useState([]);
     const [categoryError, setCategoryError] = useState("");
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -151,6 +137,7 @@ export default function ProductCatalog() {
     useEffect(() => {
         const controller = new AbortController();
         const params = new URLSearchParams(queryString);
+        params.set("per_page", "20");
 
         api.get("/products", {
             params,
@@ -186,6 +173,20 @@ export default function ProductCatalog() {
         setSearchParams(nextParams);
     };
 
+    const applyFilters = (event) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
+        const nextParams = new URLSearchParams(searchParams);
+        for (const key of ["min_price", "max_price"]) {
+            const value = String(formData.get(key) ?? "").trim();
+            if (value) nextParams.set(key, value);
+            else nextParams.delete(key);
+        }
+        nextParams.delete("page");
+        setSearchParams(nextParams);
+        setFiltersOpen(false);
+    };
+
     const changePage = (page) => {
         const nextParams = new URLSearchParams(searchParams);
         if (page > 1) nextParams.set("page", String(page));
@@ -213,109 +214,161 @@ export default function ProductCatalog() {
                 </p>
             </header>
 
-            <CatalogFilters
-                key={filterKey}
-                searchParams={searchParams}
-                setSearchParams={setSearchParams}
-                updateFilter={updateFilter}
-                categories={categories}
-            />
-
             {categoryError && (
                 <p className="rounded-xl border border-border bg-card p-3 text-sm text-muted-foreground">
                     {t(categoryError)}
                 </p>
             )}
 
-            <section aria-label={t("Products")}>
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <p
-                        className="text-sm text-muted-foreground"
-                        aria-live="polite"
-                    >
-                        {meta
-                            ? t(":count products", { count: meta.total })
-                            : t("Browse our products")}
-                    </p>
-                    <label className="flex items-center gap-2 text-sm">
-                        {t("Sort by")}
-                        <select
-                            value={searchParams.get("sort") ?? "latest"}
-                            onChange={(event) =>
-                                updateFilter("sort", event.target.value)
-                            }
-                            className="h-9 rounded-md border border-input bg-background px-3"
-                        >
-                            {SORT_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {t(option.label)}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+            <div>
+                <div className="mb-6 hidden lg:block">
+                    <CatalogFilters
+                        key={`desktop-${filterKey}`}
+                        searchParams={searchParams}
+                        updateFilter={updateFilter}
+                        categories={categories}
+                        onApply={applyFilters}
+                    />
                 </div>
 
-                {loading ? (
-                    <ProductSkeleton />
-                ) : error ? (
-                    <p
-                        role="alert"
-                        className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
-                    >
-                        {t(error)}
-                    </p>
-                ) : products.length ? (
-                    <>
-                        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-                            {products.map((product) => (
-                                <ProductCard key={product.id} product={product} />
-                            ))}
-                        </div>
-                        {meta?.last_page > 1 && (
-                            <nav
-                                aria-label={t("Catalog pages")}
-                                className="mt-8 flex items-center justify-center gap-4"
-                            >
-                                <Button
-                                    variant="outline"
-                                    disabled={meta.current_page <= 1}
-                                    onClick={() =>
-                                        changePage(meta.current_page - 1)
-                                    }
-                                >
-                                    {t("Previous")}
-                                </Button>
-                                <span className="text-sm text-muted-foreground">
-                                    {t("Page :current of :total", {
-                                        current: meta.current_page,
-                                        total: meta.last_page,
-                                    })}
-                                </span>
-                                <Button
-                                    variant="outline"
-                                    disabled={
-                                        meta.current_page >= meta.last_page
-                                    }
-                                    onClick={() =>
-                                        changePage(meta.current_page + 1)
-                                    }
-                                >
-                                    {t("Next")}
-                                </Button>
-                            </nav>
-                        )}
-                    </>
-                ) : (
-                    <div className="rounded-2xl border border-border bg-card p-8 text-center">
-                        <h2 className="text-lg font-semibold">
-                            {t("No products found")}
-                        </h2>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                            {t("Try adjusting your search or filters.")}
-                        </p>
+                {filtersOpen && (
+                    <div className="fixed inset-0 z-50 lg:hidden">
+                        <button
+                            type="button"
+                            aria-label={t("Close filters")}
+                            className="absolute inset-0 size-full cursor-pointer bg-black/40"
+                            onClick={() => setFiltersOpen(false)}
+                        />
+                        <aside
+                            role="dialog"
+                            aria-modal="true"
+                            aria-label={t("Filters")}
+                            className="absolute inset-y-0 left-0 w-[min(22rem,85vw)] overflow-y-auto border-r border-border bg-background p-4 shadow-xl"
+                        >
+                            <CatalogFilters
+                                key={`mobile-${filterKey}`}
+                                searchParams={searchParams}
+                                updateFilter={updateFilter}
+                                categories={categories}
+                                onApply={applyFilters}
+                                onClose={() => setFiltersOpen(false)}
+                                mobile
+                            />
+                        </aside>
                     </div>
                 )}
-            </section>
+
+                <section aria-label={t("Products")} className="min-w-0">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <p
+                            className="text-sm text-muted-foreground"
+                            aria-live="polite"
+                        >
+                            {meta
+                                ? t(":count products", { count: meta.total })
+                                : t("Browse our products")}
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="lg:hidden"
+                                onClick={() => setFiltersOpen(true)}
+                            >
+                                <SlidersHorizontal aria-hidden="true" />
+                                {t("Filters")}
+                            </Button>
+                            <label className="flex items-center gap-2 text-sm">
+                                <ArrowDownWideNarrow
+                                    aria-hidden="true"
+                                    className="size-4"
+                                />
+                                <span>{t("Sort")}</span>
+                                <select
+                                    value={searchParams.get("sort") ?? "latest"}
+                                    onChange={(event) =>
+                                        updateFilter("sort", event.target.value)
+                                    }
+                                    className="h-9 rounded-md border border-input bg-background px-3"
+                                >
+                                    {SORT_OPTIONS.map((option) => (
+                                        <option
+                                            key={option.value}
+                                            value={option.value}
+                                        >
+                                            {t(option.label)}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <ProductSkeleton />
+                    ) : error ? (
+                        <p
+                            role="alert"
+                            className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
+                        >
+                            {t(error)}
+                        </p>
+                    ) : products.length ? (
+                        <>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-5">
+                                {products.map((product) => (
+                                    <ProductCard
+                                        key={product.id}
+                                        product={product}
+                                    />
+                                ))}
+                            </div>
+                            {meta?.last_page > 1 && (
+                                <nav
+                                    aria-label={t("Catalog pages")}
+                                    className="mt-8 flex items-center justify-center gap-4"
+                                >
+                                    <Button
+                                        variant="outline"
+                                        disabled={meta.current_page <= 1}
+                                        onClick={() =>
+                                            changePage(meta.current_page - 1)
+                                        }
+                                    >
+                                        {t("Previous")}
+                                    </Button>
+                                    <span className="text-sm text-muted-foreground">
+                                        {t("Page :current of :total", {
+                                            current: meta.current_page,
+                                            total: meta.last_page,
+                                        })}
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        disabled={
+                                            meta.current_page >= meta.last_page
+                                        }
+                                        onClick={() =>
+                                            changePage(meta.current_page + 1)
+                                        }
+                                    >
+                                        {t("Next")}
+                                    </Button>
+                                </nav>
+                            )}
+                        </>
+                    ) : (
+                        <div className="rounded-2xl border border-border bg-card p-8 text-center">
+                            <h2 className="text-lg font-semibold">
+                                {t("No products found")}
+                            </h2>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                                {t("Try adjusting your search or filters.")}
+                            </p>
+                        </div>
+                    )}
+                </section>
+            </div>
         </div>
     );
 }

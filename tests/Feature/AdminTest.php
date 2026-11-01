@@ -289,7 +289,10 @@ it('lets admins inspect orders and update their status', function () {
 it('allows admins to create orders using catalog prices and pending payment', function () {
     $admin = User::factory()->create()->assignRole('admin');
     $customer = User::factory()->create()->assignRole('customer');
-    $firstProduct = Product::factory()->create(['price' => 450]);
+    $firstProduct = Product::factory()->create([
+        'price' => 450,
+        'discount_price' => 400,
+    ]);
     $secondProduct = Product::factory()->create(['price' => 300]);
     Sanctum::actingAs($admin);
 
@@ -313,9 +316,10 @@ it('allows admins to create orders using catalog prices and pending payment', fu
         ->assertJsonPath('status', 'pending')
         ->assertJsonPath('payment_status', 'pending')
         ->assertJsonPath('delivery_charge', 120)
-        ->assertJsonPath('total_amount', 1320)
-        ->assertJsonPath('items.0.unit_price', 450)
-        ->assertJsonPath('items.0.subtotal', 900);
+        ->assertJsonPath('total_amount', 1220)
+        ->assertJsonPath('discount_amount', 100)
+        ->assertJsonPath('items.0.unit_price', 400)
+        ->assertJsonPath('items.0.subtotal', 800);
 
     $order = Order::findOrFail($response->json('id'));
     expect($order->items)->toHaveCount(2)

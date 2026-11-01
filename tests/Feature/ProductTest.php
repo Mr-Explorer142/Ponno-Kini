@@ -25,6 +25,20 @@ it('allows public users to list products', function () {
         ->and($thirdPage->json('data'))->toHaveCount(1);
 });
 
+it('allows the catalog to request twenty products per page', function () {
+    $category = Category::factory()->create();
+    Product::factory(33)->create(['category_id' => $category->id]);
+
+    $response = $this->getJson('/api/products?per_page=20');
+    $secondPage = $this->getJson('/api/products?per_page=20&page=2');
+
+    expect($response->status())->toBe(200)
+        ->and($response->json('data'))->toHaveCount(20)
+        ->and($response->json('meta.per_page'))->toBe(20)
+        ->and($response->json('meta.last_page'))->toBe(2)
+        ->and($secondPage->json('data'))->toHaveCount(13);
+});
+
 it('loads product details from the database instead of stale cached model data', function () {
     $category = Category::factory()->create();
     $product = Product::factory()->create([
@@ -39,6 +53,29 @@ it('loads product details from the database instead of stale cached model data',
     $response->assertOk()
         ->assertJsonPath('data.id', $product->id)
         ->assertJsonPath('data.name', 'First catalog product');
+});
+
+it('allows admins to set a discount price no greater than the regular price', function () {
+    $admin = User::factory()->create()->assignRole('admin');
+    $category = Category::factory()->create();
+    Sanctum::actingAs($admin);
+
+    $created = $this->postJson('/api/products', [
+        'name' => 'Sale product',
+        'description' => 'A discounted product',
+        'price' => 1000,
+        'discount_price' => 750,
+        'category_id' => $category->id,
+    ])->assertCreated()
+        ->assertJsonPath('discount_price', 750);
+
+    $productId = $created->json('id');
+    $this->postJson("/api/products/{$productId}", [
+        'discount_price' => 1200,
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('discount_price');
+
+    expect(Product::findOrFail($productId)->discount_price)->toBe(750);
 });
 
 it('returns Gemini-selected recommendations for a product without recommending itself', function () {

@@ -89,6 +89,12 @@
         <td colspan="3" class="text-right">Delivery</td>
         <td class="text-right">BDT {{ number_format($order->delivery_charge, 2) }}</td>
     </tr>
+    @if($order->discount_amount > 0)
+        <tr>
+            <td colspan="3" class="text-right">Discount</td>
+            <td class="text-right">-BDT {{ number_format($order->discount_amount, 2) }}</td>
+        </tr>
+    @endif
     <tr class="total-row">
         <td colspan="3" class="text-right">Total Amount</td>
         <td class="text-right">BDT {{ number_format($order->total_amount, 2) }}</td>

@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MessageCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import {
+    Check,
+    Copy,
+    MessageCircle,
+    Minus,
+    Plus,
+    ShoppingBag,
+    Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import api from "@/api/axios";
@@ -30,8 +38,10 @@ export default function Cart() {
     const items = useCartStore((state) => state.items);
     const updateQuantity = useCartStore((state) => state.updateQuantity);
     const removeItem = useCartStore((state) => state.removeItem);
+    const setItemSelected = useCartStore((state) => state.setItemSelected);
+    const setAllItemsSelected = useCartStore((state) => state.setAllItemsSelected);
+    const removeItems = useCartStore((state) => state.removeItems);
     const updateProduct = useCartStore((state) => state.updateProduct);
-    const clearCart = useCartStore((state) => state.clearCart);
     const { user, isAuthenticated } = useAuthStore();
     const [addressOverrides, setAddressOverrides] = useState({});
     const address = {
@@ -44,37 +54,40 @@ export default function Cart() {
     const [error, setError] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("online");
     const [checkedProductIds, setCheckedProductIds] = useState("");
-    const [stockCheckError, setStockCheckError] = useState("");
+    const [stockCheckErrors, setStockCheckErrors] = useState([]);
     const [manualNotice, setManualNotice] = useState("");
+    const [orderDetailsCopied, setOrderDetailsCopied] = useState(false);
     const cartProductIds = items.map(({ product }) => product.id).join(",");
     const stockChecking = Boolean(cartProductIds) && checkedProductIds !== cartProductIds;
+    const selectedItems = items.filter((item) => item.selected !== false);
+    const selectedIds = selectedItems.map(({ product }) => product.id);
+    const selectedStockCheckError = selectedItems.some(({ product }) =>
+        stockCheckErrors.includes(product.id),
+    );
 
     useEffect(() => {
         if (!cartProductIds) return undefined;
 
         let active = true;
         const currentItems = useCartStore.getState().items;
-        Promise.resolve().then(() => {
-            if (active) setStockCheckError("");
-        });
-
         Promise.all(currentItems.map(async ({ product }) => {
             try {
                 const response = await api.get(`/product/${product.id}`);
                 if (active) updateProduct(response.data.data ?? response.data);
+                return null;
             } catch (requestError) {
-                if (!active) return;
+                if (!active) return null;
                 if (requestError.response?.status === 404) {
                     updateProduct({ ...product, stock: 0 });
-                } else {
-                    setStockCheckError(
-                        requestError.response?.data?.message ||
-                            "Current stock could not be checked. Please retry before ordering.",
-                    );
+                    return null;
                 }
+                console.error("Unable to check cart product stock:", requestError);
+                return product.id;
             }
-        })).finally(() => {
-            if (active) setCheckedProductIds(cartProductIds);
+        })).then((failedProductIds) => {
+            if (!active) return;
+            setStockCheckErrors(failedProductIds.filter((id) => id !== null));
+            setCheckedProductIds(cartProductIds);
         });
 
         return () => {
@@ -82,14 +95,29 @@ export default function Cart() {
         };
     }, [cartProductIds, updateProduct]);
 
-    const subtotal = items.reduce(
+    const subtotal = selectedItems.reduce(
         (total, item) => total + Number(item.product.price) * item.quantity,
         0,
     );
+    const discountAmount = selectedItems.reduce(
+        (total, { product, quantity }) =>
+            total +
+            Math.max(
+                0,
+                Number(product.price) -
+                    Number(product.discount_price ?? product.price),
+            ) *
+                quantity,
+        0,
+    );
     const deliveryCharge =
-        address.city.trim().toLowerCase() === "dhaka" ? 70 : 120;
-    const total = subtotal + (items.length ? deliveryCharge : 0);
-    const hasAvailableStock = items.every(
+        selectedItems.length === 0
+            ? 0
+            : address.city.trim().toLowerCase() === "dhaka"
+              ? 70
+              : 120;
+    const total = subtotal - discountAmount + deliveryCharge;
+    const hasAvailableStock = selectedItems.length > 0 && selectedItems.every(
         ({ product, quantity }) =>
             Number(product.stock) >= quantity && Number(product.stock) > 0,
     );
@@ -101,9 +129,14 @@ export default function Cart() {
 
     const proceedToPayment = async (event) => {
         event.preventDefault();
-        if (stockChecking || stockCheckError || !hasAvailableStock) {
+        if (selectedItems.length === 0) {
+            setError("Select at least one product to continue.");
+            return;
+        }
+        if (stockChecking || selectedStockCheckError || !hasAvailableStock) {
             setError(
-                stockCheckError ||
+                (selectedStockCheckError &&
+                    "Current stock could not be checked. Please retry before ordering.") ||
                     "One or more products no longer have enough stock. Update your cart and try again.",
             );
             return;
@@ -115,14 +148,14 @@ export default function Cart() {
             const orderResponse = await api.post("/orders", {
                 shipping_address: address,
                 payment_method: paymentMethod,
-                items: items.map(({ product, quantity }) => ({
+                items: selectedItems.map(({ product, quantity }) => ({
                     product_id: product.id,
                     quantity,
                 })),
             });
             const order = orderResponse.data.data ?? orderResponse.data;
             if (paymentMethod === "cod") {
-                clearCart();
+                removeItems(selectedIds);
                 window.location.assign(
                     `/order-result?order_id=${order.id}&payment=cod`,
                 );
@@ -148,10 +181,11 @@ export default function Cart() {
 
     const manualOrderMessage = [
         "Manual order request",
-        ...items.map(({ product, quantity }) =>
-            `${product.name} × ${quantity} — ${formatPrice(Number(product.price) * quantity)}`,
+        ...selectedItems.map(({ product, quantity }) =>
+            `${product.name} × ${quantity} — ${formatPrice(Number(product.discount_price ?? product.price) * quantity)}`,
         ),
         `Subtotal: ${formatPrice(subtotal)}`,
+        `Discount: -${formatPrice(discountAmount)}`,
         `Delivery: ${formatPrice(deliveryCharge)}`,
         `Total: ${formatPrice(total)}`,
         `Shipping address: ${[
@@ -163,8 +197,28 @@ export default function Cart() {
         ].filter(Boolean).join(", ") || "Not provided"}`,
     ].join("\n");
 
+    const copyManualOrderDetails = async () => {
+        setManualNotice("");
+        setOrderDetailsCopied(false);
+
+        try {
+            if (!navigator.clipboard?.writeText) {
+                throw new Error("Clipboard access is unavailable.");
+            }
+            await navigator.clipboard.writeText(manualOrderMessage);
+            setOrderDetailsCopied(true);
+            setManualNotice(t("Order details copied."));
+        } catch (copyError) {
+            console.error("Unable to copy order details:", copyError);
+            setManualNotice(
+                t("Order details could not be copied. Please allow clipboard access and try again."),
+            );
+        }
+    };
+
     const openManualChat = async (platform) => {
         setManualNotice("");
+        setOrderDetailsCopied(false);
         try {
             const destination = new URL(manualChatLinks[platform]);
             if (platform === "WhatsApp") {
@@ -215,11 +269,37 @@ export default function Cart() {
                     aria-label={t("Cart items")}
                     className="divide-y divide-border rounded-2xl border border-border bg-card"
                 >
-                    {items.map(({ product, quantity }) => (
+                    <label className="flex items-center gap-3 p-4 text-sm font-medium">
+                        <input
+                            type="checkbox"
+                            checked={selectedItems.length === items.length}
+                            onChange={(event) =>
+                                setAllItemsSelected(event.target.checked)
+                            }
+                            aria-label={t("Select all cart items")}
+                            className="size-4 accent-primary"
+                        />
+                        {t("Select all")}
+                    </label>
+                    {items.map(({ product, quantity, selected }) => (
                         <article
                             key={product.id}
                             className="flex flex-wrap items-center gap-4 p-4"
                         >
+                            <input
+                                type="checkbox"
+                                checked={selected !== false}
+                                onChange={(event) =>
+                                    setItemSelected(
+                                        product.id,
+                                        event.target.checked,
+                                    )
+                                }
+                                aria-label={t("Select :product", {
+                                    product: product.name,
+                                })}
+                                className="size-4 shrink-0 accent-primary"
+                            />
                             {product.image_url ? (
                                 <img
                                     src={product.image_url}
@@ -237,7 +317,20 @@ export default function Cart() {
                                     {product.name}
                                 </Link>
                                 <p className="mt-1 text-sm text-muted-foreground">
-                                    {formatPrice(product.price)} {t("each")}
+                                    {product.discount_price !== null &&
+                                    product.discount_price !== undefined ? (
+                                        <>
+                                            <span className="font-semibold text-primary">
+                                                {formatPrice(product.discount_price)}
+                                            </span>{" "}
+                                            <span className="text-xs line-through">
+                                                {formatPrice(product.price)}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        formatPrice(product.price)
+                                    )}{" "}
+                                    {t("each")}
                                 </p>
                                 <p className={`mt-1 text-xs ${Number(product.stock) > 0 ? "text-muted-foreground" : "font-medium text-destructive"}`}>
                                     {Number(product.stock) > 0
@@ -298,7 +391,10 @@ export default function Cart() {
                                 </Button>
                             </div>
                             <div className="w-full text-right font-semibold sm:w-24">
-                                {formatPrice(Number(product.price) * quantity)}
+                                {formatPrice(
+                                    Number(product.discount_price ?? product.price) *
+                                        quantity,
+                                )}
                             </div>
                             <Button
                                 type="button"
@@ -418,6 +514,12 @@ export default function Cart() {
                             </span>
                             <span>{formatPrice(deliveryCharge)}</span>
                         </div>
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between text-green-700 dark:text-green-400">
+                                <span>{t("Discount")}</span>
+                                <span>-{formatPrice(discountAmount)}</span>
+                            </div>
+                        )}
                         <div className="flex justify-between border-t border-border pt-3 text-base font-bold">
                             <span>{t("Total")}</span>
                             <span>{formatPrice(total)}</span>
@@ -438,7 +540,7 @@ export default function Cart() {
                         <Button
                             type="submit"
                             className="w-full"
-                            disabled={submitting || stockChecking || Boolean(stockCheckError) || !hasAvailableStock}
+                            disabled={submitting || stockChecking || selectedStockCheckError || selectedItems.length === 0 || !hasAvailableStock}
                         >
                             {submitting
                                 ? paymentMethod === "cod"
@@ -450,12 +552,12 @@ export default function Cart() {
                         </Button>
                     )}
 
-                    {(error || stockCheckError) && (
+                    {(error || selectedStockCheckError) && (
                         <p
                             role="alert"
                             className="text-sm text-destructive"
                         >
-                            {t(error || stockCheckError)}
+                            {t(error || "Current stock could not be checked. Please retry before ordering.")}
                         </p>
                     )}
                     {stockChecking && (
@@ -465,7 +567,9 @@ export default function Cart() {
                     )}
                     {!hasAvailableStock && !stockChecking && (
                         <p role="alert" className="text-sm text-destructive">
-                            {t("Reduce quantities or remove unavailable products before ordering.")}
+                            {t(selectedItems.length === 0
+                                ? "Select at least one product to continue."
+                                : "Reduce quantities or remove unavailable products before ordering.")}
                         </p>
                     )}
 
@@ -476,6 +580,19 @@ export default function Cart() {
                                 {t("We will copy your cart details so you can paste them into the selected chat. This does not reserve stock or place an order.")}
                             </p>
                         </div>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={copyManualOrderDetails}
+                        >
+                            {orderDetailsCopied ? (
+                                <Check aria-hidden="true" />
+                            ) : (
+                                <Copy aria-hidden="true" />
+                            )}
+                            {t("Copy order details")}
+                        </Button>
                         <div className="grid grid-cols-2 gap-2">
                             {Object.keys(manualChatLinks).map((platform) => (
                                 <Button

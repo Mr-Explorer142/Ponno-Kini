@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
     LogOut,
     Menu,
     Moon,
+    Search,
     ShoppingBag,
     ShoppingCart,
     Sun,
@@ -11,11 +12,12 @@ import {
     X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { t } from "@/i18n";
 
-function ThemeToggle({ theme, onToggleTheme, showLabel = false }) {
+function ThemeToggle({ theme, onToggleTheme }) {
     const isDark = theme === "dark";
     const Icon = isDark ? Sun : Moon;
     const label = t(isDark ? "Switch to light mode" : "Switch to dark mode");
@@ -24,16 +26,54 @@ function ThemeToggle({ theme, onToggleTheme, showLabel = false }) {
         <Button
             type="button"
             variant="ghost"
-            size={showLabel ? "default" : "icon"}
-            className={showLabel ? "justify-start" : ""}
+            size="icon"
             aria-label={label}
             aria-pressed={isDark}
             title={label}
             onClick={onToggleTheme}
         >
             <Icon aria-hidden="true" />
-            {showLabel && t(isDark ? "Light mode" : "Dark mode")}
         </Button>
+    );
+}
+
+function CatalogSearch({ search, onSubmit }) {
+    const [query, setQuery] = useState(search);
+
+    return (
+        <form
+            role="search"
+            aria-label={t("Search products")}
+            onSubmit={(event) => onSubmit(event, query)}
+            className="order-3 w-full lg:order-none lg:mx-4 lg:max-w-md lg:flex-1"
+        >
+            <label className="sr-only" htmlFor="catalog-search">
+                {t("Search products")}
+            </label>
+            <span className="relative block">
+                <Search
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                />
+                <Input
+                    id="catalog-search"
+                    type="search"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder={t("Search products")}
+                    className="h-10 pl-9 pr-12"
+                />
+                <Button
+                    type="submit"
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("Search")}
+                    className="absolute top-1 right-1"
+                >
+                    <Search aria-hidden="true" />
+                </Button>
+            </span>
+        </form>
     );
 }
 
@@ -43,11 +83,25 @@ export default function Navbar({ theme, onToggleTheme }) {
         state.items.reduce((total, item) => total + item.quantity, 0),
     );
     const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const catalogSearch = location.pathname === "/products";
+    const catalogQuery = searchParams.get("search") ?? "";
     const [menuOpen, setMenuOpen] = useState(false);
     const [accountMenuOpen, setAccountMenuOpen] = useState(false);
     const menuButtonRef = useRef(null);
     const closeButtonRef = useRef(null);
     const drawerRef = useRef(null);
+
+    const submitCatalogSearch = (event, query) => {
+        event.preventDefault();
+        const nextParams = new URLSearchParams(searchParams);
+        const trimmedQuery = query.trim();
+        if (trimmedQuery) nextParams.set("search", trimmedQuery);
+        else nextParams.delete("search");
+        nextParams.delete("page");
+        setSearchParams(nextParams);
+    };
 
     useEffect(() => {
         if (!menuOpen) return;
@@ -102,11 +156,19 @@ export default function Navbar({ theme, onToggleTheme }) {
 
     return (
         <header className="border-b border-border bg-background shadow-sm">
-            <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-y-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
                 <Link to="/" className="text-xl font-bold text-primary inline-flex items-center gap-2">
                     <ShoppingBag className="size-5" aria-hidden="true" />
                     PonnoKini
                 </Link>
+
+                {catalogSearch && (
+                    <CatalogSearch
+                        key={catalogQuery}
+                        search={catalogQuery}
+                        onSubmit={submitCatalogSearch}
+                    />
+                )}
 
                 <nav className="hidden items-center gap-2 lg:flex">
                     <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
@@ -208,6 +270,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                 </nav>
 
                 <div className="flex items-center gap-1 lg:hidden">
+                    <ThemeToggle theme={theme} onToggleTheme={onToggleTheme} />
                     <Button asChild variant="ghost" size="icon">
                         <Link
                             to="/cart"
@@ -278,25 +341,6 @@ export default function Navbar({ theme, onToggleTheme }) {
                         </div>
 
                         <div className="flex flex-col items-stretch gap-2">
-                            <Button
-                                asChild
-                                variant="ghost"
-                                className="justify-start"
-                            >
-                                <Link
-                                    to="/cart"
-                                    className="inline-flex items-center gap-2"
-                                    onClick={() => setMenuOpen(false)}
-                                >
-                                    <ShoppingCart aria-hidden="true" />
-                                    {t("Cart")} ({cartCount})
-                                </Link>
-                            </Button>
-                            <ThemeToggle
-                                theme={theme}
-                                onToggleTheme={onToggleTheme}
-                                showLabel
-                            />
                             <Button
                                 asChild
                                 variant="ghost"

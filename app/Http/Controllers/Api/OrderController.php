@@ -48,6 +48,7 @@ class OrderController extends Controller
 
         return DB::transaction(function () use ($request, $validated, $inventory) {
             $totalAmount = 0;
+            $discountAmount = 0;
             $orderItemsData = [];
 
             $productIds = collect($validated['items'])->pluck('product_id')->unique();
@@ -64,10 +65,15 @@ class OrderController extends Controller
                     abort(422, 'One or more selected products are no longer available.');
                 }
 
-                $unitPrice = $product->price;
+                $unitPrice = $product->discount_price ?? $product->price;
                 if ($unitPrice > intdiv(2147483647, $item['quantity'])) {
                     abort(422, 'The order total exceeds the supported amount.');
                 }
+                $itemDiscount = ($product->price - $unitPrice) * $item['quantity'];
+                if ($discountAmount > 2147483647 - $itemDiscount) {
+                    abort(422, 'The order discount exceeds the supported amount.');
+                }
+                $discountAmount += $itemDiscount;
                 $subtotal = $unitPrice * $item['quantity'];
                 if ($totalAmount > 2147483647 - $subtotal) {
                     abort(422, 'The order total exceeds the supported amount.');
@@ -97,6 +103,7 @@ class OrderController extends Controller
                 'user_id' => $request->user()->id,
                 'order_number' => 'ORD-'.strtoupper(Str::random(10)),
                 'total_amount' => $totalAmount,
+                'discount_amount' => $discountAmount,
                 'delivery_charge' => $deliveryCharge,
                 'status' => 'pending',
                 'payment_status' => 'pending',

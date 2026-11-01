@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProductController extends Controller
 {
@@ -19,17 +20,21 @@ class ProductController extends Controller
     public function index(Request $request)
     {
         $startTime = microtime(true);
+        $perPage = max(
+            1,
+            min(100, (int) $request->query('per_page', self::PER_PAGE))
+        );
 
         // 1. Unique cache key per query string, tied to the current list version.
         //    Bumping the version (see clearProductCache) invalidates every cached list at once.
         $queryString = http_build_query($request->query());
-        $cacheKey = 'products.list.v' . $this->listVersion() . '.per' . self::PER_PAGE . '.' . md5($queryString);
+        $cacheKey = 'products.list.v' . $this->listVersion() . '.per' . $perPage . '.' . md5($queryString);
 
         $isBestSellerRequest = $request->query('sort') === 'best_selling';
         $isCacheHit = !$isBestSellerRequest && Cache::has($cacheKey);
 
         // 2. Keep regular list caches small; always recalculate paid-order rankings.
-        $loadProductIds = function () use ($request) {
+        $loadProductIds = function () use ($request, $perPage) {
             $paginator = Product::query()
                 ->when($request->query('search'), function ($query, $search) {
                     $query->where(function ($q) use ($search) {
@@ -65,7 +70,7 @@ class ProductController extends Controller
                 }, function ($query) {
                     $query->latest();
                 })
-                ->paginate(self::PER_PAGE)
+                ->paginate($perPage)
                 ->withQueryString();
 
             return [
@@ -121,10 +126,12 @@ class ProductController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'required|string',
             'price' => 'required|integer|min:0', // BDT, whole units
+            'discount_price' => 'nullable|integer|min:0|max:2147483647',
             'stock' => 'sometimes|required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
         ]);
+        $this->validateDiscountPrice($validated['discount_price'] ?? null, $validated['price']);
 
         $validated['slug'] = Str::slug($validated['name']);
 
@@ -167,11 +174,21 @@ class ProductController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|integer|min:0', // BDT, whole units
+            'discount_price' => 'sometimes|nullable|integer|min:0|max:2147483647',
             'stock' => 'sometimes|required|integer|min:0',
             'category_id' => 'sometimes|required|exists:categories,id',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
             'remove_image' => 'sometimes|boolean',
         ]);
+        if (array_key_exists('discount_price', $validated) || array_key_exists('price', $validated)) {
+            $discountPrice = array_key_exists('discount_price', $validated)
+                ? $validated['discount_price']
+                : $product->discount_price;
+            $this->validateDiscountPrice(
+                $discountPrice,
+                $validated['price'] ?? $product->price
+            );
+        }
 
         if (isset($validated['name'])) {
             $validated['slug'] = Str::slug($validated['name']);
@@ -248,6 +265,15 @@ class ProductController extends Controller
 
         if ($id) {
             Cache::forget("products.show.{$id}");
+        }
+    }
+
+    private function validateDiscountPrice(?int $discountPrice, int $price): void
+    {
+        if ($discountPrice !== null && $discountPrice > $price) {
+            throw ValidationException::withMessages([
+                'discount_price' => 'The discount price must not be greater than the regular price.',
+            ]);
         }
     }
 }

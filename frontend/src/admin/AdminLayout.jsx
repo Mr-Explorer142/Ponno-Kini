@@ -5,6 +5,7 @@ import {
     LogOut,
     MessageCircleQuestion,
     Package,
+    Settings,
     ShoppingCart,
     Users,
 } from "lucide-react";
@@ -17,6 +18,7 @@ const navigation = [
     { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { to: "/admin/questions", label: "Questions", icon: MessageCircleQuestion },
     { to: "/admin/users", label: "Customers", icon: Users },
+    { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
 export default function AdminLayout() {

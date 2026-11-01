@@ -18,9 +18,21 @@ export const useCartStore = create(
                                       ? { ...item, quantity: item.quantity + 1 }
                                       : item,
                               )
-                            : [...state.items, { product, quantity: 1 }],
+                            : [...state.items, { product, quantity: 1, selected: true }],
                     };
                 }),
+            setItemSelected: (productId, selected) =>
+                set((state) => ({
+                    items: state.items.map((item) =>
+                        item.product.id === productId
+                            ? { ...item, selected }
+                            : item,
+                    ),
+                })),
+            setAllItemsSelected: (selected) =>
+                set((state) => ({
+                    items: state.items.map((item) => ({ ...item, selected })),
+                })),
             updateProduct: (product) =>
                 set((state) => ({
                     items: state.items.map((item) =>
@@ -46,6 +58,12 @@ export const useCartStore = create(
                 set((state) => ({
                     items: state.items.filter(
                         (item) => item.product.id !== productId,
+                    ),
+                })),
+            removeItems: (productIds) =>
+                set((state) => ({
+                    items: state.items.filter(
+                        (item) => !productIds.includes(item.product.id),
                     ),
                 })),
             clearCart: () => set({ items: [] }),

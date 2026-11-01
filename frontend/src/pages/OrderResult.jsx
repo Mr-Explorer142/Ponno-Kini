@@ -13,7 +13,7 @@ export default function OrderResult() {
     const [searchParams] = useSearchParams();
     const orderId = searchParams.get("order_id");
     const paymentResult = searchParams.get("payment");
-    const clearCart = useCartStore((state) => state.clearCart);
+    const removeItems = useCartStore((state) => state.removeItems);
     const [order, setOrder] = useState(null);
     const [error, setError] = useState("");
     const [downloading, setDownloading] = useState(false);
@@ -33,7 +33,11 @@ export default function OrderResult() {
                     loadedOrder.payment_status === "paid" ||
                     loadedOrder.payment_method === "cod"
                 ) {
-                    clearCart();
+                    removeItems(
+                        (loadedOrder.items ?? []).map(
+                            (item) => item.product_id,
+                        ),
+                    );
                 }
             })
             .catch((requestError) => {
@@ -48,7 +52,7 @@ export default function OrderResult() {
         return () => {
             active = false;
         };
-    }, [orderId, clearCart]);
+    }, [orderId, removeItems]);
 
     const downloadInvoice = async () => {
         setDownloading(true);

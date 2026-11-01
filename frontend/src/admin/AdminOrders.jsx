@@ -511,13 +511,13 @@ export default function AdminOrders() {
                                                         item.product_id !== String(option.id)
                                                     }
                                                 >
-                                                    {option.name} · {formatPrice(option.price)} · {option.stock} in stock
+                                                    {option.name} · {formatPrice(option.discount_price ?? option.price)} · {option.stock} in stock
                                                 </option>
                                             ))}
                                         </select>
                                         {product && (
                                             <span className="text-xs text-muted-foreground">
-                                                Current catalog price: {formatPrice(product.price)}
+                                                Current catalog price: {formatPrice(product.discount_price ?? product.price)}
                                             </span>
                                         )}
                                     </label>
@@ -636,6 +636,12 @@ export default function AdminOrders() {
                                     <span>{formatPrice(item.subtotal)}</span>
                                 </div>
                             ))}
+                            {Number(selected.discount_amount) > 0 && (
+                                <div className="flex justify-between text-sm text-green-700 dark:text-green-400">
+                                    <span>Discount</span>
+                                    <span>-{formatPrice(selected.discount_amount)}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between text-sm text-muted-foreground">
                                 <span>Delivery</span><span>{formatPrice(selected.delivery_charge)}</span>
                             </div>

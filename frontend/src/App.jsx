@@ -23,6 +23,7 @@ import AdminCategories from "./admin/AdminCategories";
 import AdminOrders from "./admin/AdminOrders";
 import AdminQuestions from "./admin/AdminQuestions";
 import AdminUsers from "./admin/AdminUsers";
+import AdminSettings from "./admin/AdminSettings";
 import Navbar from "./components/navbar";
 import Footer from "./components/Footer";
 import { useAuthStore } from "./store/useAuthStore";
@@ -33,7 +34,7 @@ const Page = ({ title }) => <h1 className="text-3xl font-bold">{t(title)}</h1>;
 
 function App() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
-    const { language } = useLocale();
+    const { language, setLanguage } = useLocale();
     const location = useLocation();
     const isAdminPage = location.pathname.startsWith("/admin");
     const [theme, setTheme] = useState(() =>
@@ -78,6 +79,17 @@ function App() {
                             <Route path="orders" element={<AdminOrders />} />
                             <Route path="questions" element={<AdminQuestions />} />
                             <Route path="users" element={<AdminUsers />} />
+                            <Route
+                                path="settings"
+                                element={
+                                    <AdminSettings
+                                        language={language}
+                                        setLanguage={setLanguage}
+                                        theme={theme}
+                                        onToggleTheme={toggleTheme}
+                                    />
+                                }
+                            />
                         </Route>
                     </Route>
                     {/* Public auth routes */}

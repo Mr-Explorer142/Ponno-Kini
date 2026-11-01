@@ -55,8 +55,16 @@ export default function ProductCard({ product, badge }) {
                         {product.name}
                     </h3>
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="font-bold text-primary">
-                            {formatPrice(product.price)}
+                        <span className="flex flex-wrap items-baseline gap-2">
+                            <span className="font-bold text-primary">
+                                {formatPrice(product.discount_price ?? product.price)}
+                            </span>
+                            {product.discount_price !== null &&
+                                product.discount_price !== undefined && (
+                                    <span className="text-xs text-muted-foreground line-through">
+                                        {formatPrice(product.price)}
+                                    </span>
+                                )}
                         </span>
                         {Number(product.average_rating) > 0 && (
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

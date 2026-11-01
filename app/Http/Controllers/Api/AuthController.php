@@ -11,8 +11,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AuthController extends Controller
 {
@@ -39,16 +41,19 @@ class AuthController extends Controller
 
         $user->assignRole('customer');
 
-        $this->sendVerificationCode($user);
+        $emailSent = $this->sendVerificationCode($user);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'message' => 'User registered successfully. Check your email for the verification code.',
+            'message' => $emailSent
+                ? 'User registered successfully. Check your email for the verification code.'
+                : 'User registered successfully, but we could not send the verification email. Please request a new code.',
             'user' => $user->load('roles'),
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'resend_after_seconds' => 60,
+            'email_sent' => $emailSent,
+            'resend_after_seconds' => $emailSent ? 60 : 0,
         ], 201);
     }
 
@@ -196,7 +201,19 @@ class AuthController extends Controller
             ], $result['status']);
         }
 
-        $result['user']->notify(new EmailVerificationCodeNotification($result['code']));
+        try {
+            $result['user']->notify(new EmailVerificationCodeNotification($result['code']));
+        } catch (Throwable $e) {
+            Log::error('Verification email failed', [
+                'user_id' => $result['user']->id,
+                'error' => $e->getMessage(),
+            ]);
+            $result['user']->forceFill(['verification_code_sent_at' => null])->save();
+
+            return response()->json([
+                'message' => 'Could not send the email right now. Please try again in a moment.',
+            ], 503);
+        }
 
         return response()->json([
             'message' => 'A new verification code has been sent.',
@@ -219,10 +236,22 @@ class AuthController extends Controller
         ]);
     }
 
-    private function sendVerificationCode(User $user): void
+    private function sendVerificationCode(User $user): bool
     {
         $code = $this->verificationCodes->issue($user);
-        $user->notify(new EmailVerificationCodeNotification($code));
+        try {
+            $user->notify(new EmailVerificationCodeNotification($code));
+        } catch (Throwable $e) {
+            Log::error('Verification email failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            $user->forceFill(['verification_code_sent_at' => null])->save();
+
+            return false;
+        }
+
+        return true;
     }
 
     // 7. Sending Reset Password Email Link

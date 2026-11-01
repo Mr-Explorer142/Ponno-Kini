@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function PageHeading({ title, description, action }) {
@@ -16,17 +18,45 @@ export function PageHeading({ title, description, action }) {
 
 export function Notice({ children, variant = "error" }) {
     if (!children) return null;
+
     return (
-        <p
+        <TimedNotice key={`${variant}:${children}`} variant={variant}>
+            {children}
+        </TimedNotice>
+    );
+}
+
+function TimedNotice({ children, variant }) {
+    const [visible, setVisible] = useState(true);
+
+    useEffect(() => {
+        const timeout = window.setTimeout(() => setVisible(false), 5000);
+        return () => window.clearTimeout(timeout);
+    }, []);
+
+    if (!visible) return null;
+
+    return (
+        <div
             role={variant === "error" ? "alert" : "status"}
-            className={`rounded-lg border px-4 py-3 text-sm ${
+            className={`flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-sm ${
                 variant === "error"
                     ? "border-destructive/30 bg-destructive/10 text-destructive"
                     : "border-green-600/20 bg-green-600/10 text-green-700 dark:text-green-400"
             }`}
         >
-            {children}
-        </p>
+            <span>{children}</span>
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-6 shrink-0"
+                aria-label="Close notification"
+                onClick={() => setVisible(false)}
+            >
+                <X aria-hidden="true" />
+            </Button>
+        </div>
     );
 }
 

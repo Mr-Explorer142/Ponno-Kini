@@ -79,6 +79,33 @@ it('charges the outside-Dhaka delivery rate for an order', function () {
         ->assertJsonPath('delivery_charge', 120);
 });
 
+it('charges the discounted product price and records the discount on an order', function () {
+    $customer = User::factory()->create()->assignRole('customer');
+    $product = Product::factory()->create([
+        'price' => 1000,
+        'discount_price' => 750,
+        'stock' => 4,
+    ]);
+    Sanctum::actingAs($customer);
+
+    $response = $this->postJson('/api/orders', [
+        'shipping_address' => [
+            'street' => '123 Test St',
+            'city' => 'Dhaka',
+            'postal_code' => '1000',
+            'country' => 'BD',
+            'phone' => '01700000000',
+        ],
+        'items' => [['product_id' => $product->id, 'quantity' => 2]],
+    ])->assertCreated()
+        ->assertJsonPath('discount_amount', 500)
+        ->assertJsonPath('items.0.unit_price', 750)
+        ->assertJsonPath('items.0.subtotal', 1500)
+        ->assertJsonPath('total_amount', 1570);
+
+    expect(Order::findOrFail($response->json('id'))->discount_amount)->toBe(500);
+});
+
 it('reserves stock when creating an order and prevents orders beyond available stock', function () {
     $customer = User::factory()->create()->assignRole('customer');
     $product = Product::factory()->create(['stock' => 3, 'price' => 500]);

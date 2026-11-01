@@ -175,8 +175,14 @@ export default function ProductDetail() {
                     </h1>
                     <div className="flex flex-wrap items-center gap-4">
                         <p className="text-2xl font-bold text-primary">
-                            {formatPrice(product.price)}
+                            {formatPrice(product.discount_price ?? product.price)}
                         </p>
+                        {product.discount_price !== null &&
+                            product.discount_price !== undefined && (
+                                <p className="text-lg text-muted-foreground line-through">
+                                    {formatPrice(product.price)}
+                                </p>
+                            )}
                         {Number(product.average_rating) > 0 && (
                             <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                                 <Star

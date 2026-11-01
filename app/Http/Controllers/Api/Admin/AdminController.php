@@ -116,7 +116,7 @@ class AdminController extends Controller
                 ->get(['id', 'name', 'email']),
             'products' => Product::query()
                 ->orderBy('name')
-                ->get(['id', 'name', 'price', 'stock']),
+                ->get(['id', 'name', 'price', 'discount_price', 'stock']),
         ]);
     }
 
@@ -126,7 +126,7 @@ class AdminController extends Controller
 
         return DB::transaction(function () use ($validated, $inventory) {
             $customer = $this->customerForOrder($validated['user_id']);
-            [$items, $totalAmount] = $this->priceOrderItems(
+            [$items, $totalAmount, $discountAmount] = $this->priceOrderItems(
                 $validated['items'],
                 $validated['delivery_charge'],
             );
@@ -135,6 +135,7 @@ class AdminController extends Controller
                 'user_id' => $customer->id,
                 'order_number' => 'ORD-'.strtoupper(Str::random(10)),
                 'total_amount' => $totalAmount,
+                'discount_amount' => $discountAmount,
                 'delivery_charge' => $validated['delivery_charge'],
                 'status' => $validated['status'] ?? 'pending',
                 'payment_status' => 'pending',
@@ -159,7 +160,7 @@ class AdminController extends Controller
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);
             $inventory->release($order);
             $customer = $this->customerForOrder($validated['user_id']);
-            [$items, $totalAmount] = $this->priceOrderItems(
+            [$items, $totalAmount, $discountAmount] = $this->priceOrderItems(
                 $validated['items'],
                 $validated['delivery_charge'],
             );
@@ -167,6 +168,7 @@ class AdminController extends Controller
             $order->update([
                 'user_id' => $customer->id,
                 'total_amount' => $totalAmount,
+                'discount_amount' => $discountAmount,
                 'delivery_charge' => $validated['delivery_charge'],
                 'status' => $validated['status'],
                 'shipping_address' => $validated['shipping_address'],
@@ -412,6 +414,7 @@ class AdminController extends Controller
 
         $items = [];
         $itemsTotal = 0;
+        $discountTotal = 0;
         $maximumAmount = 2147483647;
 
         foreach ($requestedItems as $requestedItem) {
@@ -424,13 +427,21 @@ class AdminController extends Controller
                 ]);
             }
 
-            if ($product->price > intdiv($maximumAmount, $quantity)) {
+            $unitPrice = $product->discount_price ?? $product->price;
+            if ($unitPrice > intdiv($maximumAmount, $quantity)) {
                 throw ValidationException::withMessages([
                     'items' => 'The order total exceeds the supported amount.',
                 ]);
             }
 
-            $subtotal = $product->price * $quantity;
+            $itemDiscount = ($product->price - $unitPrice) * $quantity;
+            if ($discountTotal > $maximumAmount - $itemDiscount) {
+                throw ValidationException::withMessages([
+                    'items' => 'The order discount exceeds the supported amount.',
+                ]);
+            }
+            $discountTotal += $itemDiscount;
+            $subtotal = $unitPrice * $quantity;
 
             if ($itemsTotal > $maximumAmount - $subtotal) {
                 throw ValidationException::withMessages([
@@ -442,7 +453,7 @@ class AdminController extends Controller
             $items[] = [
                 'product_id' => $product->id,
                 'quantity' => $quantity,
-                'unit_price' => $product->price,
+                'unit_price' => $unitPrice,
                 'subtotal' => $subtotal,
             ];
         }
@@ -453,7 +464,7 @@ class AdminController extends Controller
             ]);
         }
 
-        return [$items, $itemsTotal + $deliveryCharge];
+        return [$items, $itemsTotal + $deliveryCharge, $discountTotal];
     }
 
     private function orderData(Order $order): array
@@ -463,6 +474,7 @@ class AdminController extends Controller
             'user_id' => $order->user_id,
             'order_number' => $order->order_number,
             'total_amount' => $order->total_amount,
+            'discount_amount' => $order->discount_amount,
             'delivery_charge' => $order->delivery_charge,
             'status' => $order->status,
             'payment_status' => $order->payment_status,

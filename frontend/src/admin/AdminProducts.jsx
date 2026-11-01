@@ -24,6 +24,7 @@ const blankProduct = {
     name: "",
     description: "",
     price: "",
+    discount_price: "",
     stock: "3",
     category_id: "",
 };
@@ -115,6 +116,7 @@ export default function AdminProducts() {
             name: product.name,
             description: product.description,
             price: product.price,
+            discount_price: product.discount_price ?? "",
             stock: product.stock ?? 0,
             category_id: product.category?.id ?? "",
         });
@@ -332,6 +334,26 @@ export default function AdminProducts() {
                             />
                         </label>
                         <label className="flex flex-col gap-2 text-sm font-medium">
+                            Discount price (৳, optional)
+                            <Input
+                                type="number"
+                                min="0"
+                                step="1"
+                                max={draft.price || undefined}
+                                value={draft.discount_price}
+                                onChange={(event) =>
+                                    setDraft({
+                                        ...draft,
+                                        discount_price: event.target.value,
+                                    })
+                                }
+                                className="h-10 px-3"
+                            />
+                            <span className="text-xs font-normal text-muted-foreground">
+                                Leave blank for no discount. Must not exceed the regular price.
+                            </span>
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm font-medium">
                             Stock quantity
                             <Input
                                 required
@@ -521,7 +543,21 @@ export default function AdminProducts() {
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 text-muted-foreground">{product.category?.name}</td>
-                                        <td className="px-4 py-3 font-medium">{formatPrice(product.price)}</td>
+                                        <td className="px-4 py-3 font-medium">
+                                            {product.discount_price !== null &&
+                                            product.discount_price !== undefined ? (
+                                                <span className="flex flex-col">
+                                                    <span className="text-primary">
+                                                        {formatPrice(product.discount_price)}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground line-through">
+                                                        {formatPrice(product.price)}
+                                                    </span>
+                                                </span>
+                                            ) : (
+                                                formatPrice(product.price)
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3">
                                             <span className={product.stock <= 5 ? "font-semibold text-amber-700 dark:text-amber-400" : ""}>
                                                 {product.stock}
