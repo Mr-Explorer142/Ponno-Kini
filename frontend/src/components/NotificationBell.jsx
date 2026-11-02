@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Bell, Volume2, VolumeX } from "lucide-react";
+import { Bell, Volume2, VolumeX, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import api from "@/api/axios";
@@ -69,6 +69,16 @@ function NotificationBellContent() {
         return () => window.clearInterval(interval);
     }, [loadNotifications]);
 
+    useEffect(() => {
+        if (!open) return undefined;
+
+        const closeOnEscape = (event) => {
+            if (event.key === "Escape") setOpen(false);
+        };
+        window.addEventListener("keydown", closeOnEscape);
+        return () => window.removeEventListener("keydown", closeOnEscape);
+    }, [open]);
+
     const markAsRead = async (id) => {
         try {
             await api.patch(`/notifications/${id}/read`);
@@ -126,7 +136,7 @@ function NotificationBellContent() {
     };
 
     return (
-        <div className="relative">
+        <div className={open ? "relative z-[60]" : "relative"}>
             <Button
                 type="button"
                 variant="ghost"
@@ -149,18 +159,27 @@ function NotificationBellContent() {
             </Button>
 
             {open && (
+                <>
+                    <div
+                        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] md:hidden"
+                        aria-hidden="true"
+                        onClick={() => setOpen(false)}
+                    />
                 <section
                     role="dialog"
                     aria-label={t("Notifications")}
-                    className="absolute right-0 top-full z-50 mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-border bg-popover text-popover-foreground shadow-xl"
+                    className="fixed top-1/2 left-1/2 z-[60] flex max-h-[min(36rem,calc(100dvh-1rem))] w-[min(24rem,calc(100vw-1rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-border bg-popover text-popover-foreground shadow-2xl md:absolute md:top-full md:right-0 md:left-auto md:mt-2 md:max-h-[min(36rem,calc(100dvh-5rem))] md:w-[22rem] md:translate-x-0 md:translate-y-0 md:rounded-xl md:shadow-xl"
                 >
-                    <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-                        <h2 className="font-semibold">{t("Notifications")}</h2>
-                        <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-2.5 sm:px-4 sm:py-3">
+                        <h2 className="shrink-0 text-sm font-semibold sm:text-base">
+                            {t("Notifications")}
+                        </h2>
+                        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
+                                className="size-8 sm:size-9"
                                 aria-label={t(
                                     soundEnabled
                                         ? "Disable notification sound"
@@ -189,16 +208,26 @@ function NotificationBellContent() {
                                     {t("Mark all as read")}
                                 </button>
                             )}
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="size-8 sm:size-9"
+                                aria-label={t("Close notifications")}
+                                onClick={() => setOpen(false)}
+                            >
+                                <X aria-hidden="true" />
+                            </Button>
                         </div>
                     </div>
 
                     {error && (
-                        <p role="alert" className="px-4 py-3 text-sm text-destructive">
+                        <p role="alert" className="shrink-0 px-4 py-3 text-sm text-destructive">
                             {error}
                         </p>
                     )}
 
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="min-h-0 max-h-96 flex-1 overflow-y-auto">
                         {notifications.length === 0 ? (
                             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                                 {t("You have no notifications.")}
@@ -241,6 +270,7 @@ function NotificationBellContent() {
                         )}
                     </div>
                 </section>
+                </>
             )}
         </div>
     );

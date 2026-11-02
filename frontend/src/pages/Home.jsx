@@ -4,6 +4,7 @@ import {
     ArrowRight,
     BookOpen,
     Check,
+    ChevronLeft,
     ChevronRight,
     HeartHandshake,
     House,
@@ -16,11 +17,48 @@ import {
     Truck,
     Watch,
 } from "lucide-react";
-import heroArt from "@/assets/home-hero.svg";
 import api from "@/api/axios";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/ProductCard";
 import { t } from "@/i18n";
+
+const fallbackHeroSlides = [
+    {
+        id: "wireless-headphones",
+        name: "Wireless Headphones",
+        category: "Electronics",
+        image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=85",
+        to: "/products",
+    },
+    {
+        id: "casual-sneakers",
+        name: "Casual Sneakers",
+        category: "Fashion & Apparel",
+        image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=85",
+        to: "/products",
+    },
+    {
+        id: "smartphone",
+        name: "Smartphone",
+        category: "Gadgets & Accessories",
+        image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=1200&q=85",
+        to: "/products",
+    },
+    {
+        id: "wristwatch",
+        name: "Classic Wristwatch",
+        category: "Fashion & Apparel",
+        image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=85",
+        to: "/products",
+    },
+    {
+        id: "home-kitchen",
+        name: "Home & Kitchen",
+        category: "Home & Kitchen",
+        image: "https://images.unsplash.com/photo-1570222094114-d054a817e56b?auto=format&fit=crop&w=1200&q=85",
+        to: "/products",
+    },
+];
 
 const categoryIcons = [
     { match: /electronic|gadget|tech/, icon: Smartphone },
@@ -128,6 +166,8 @@ export default function Home() {
     const [bestSellers, setBestSellers] = useState([]);
     const [newDrops, setNewDrops] = useState([]);
     const [reviews, setReviews] = useState([]);
+    const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+    const [heroPaused, setHeroPaused] = useState(false);
     const [loading, setLoading] = useState({
         categories: true,
         bestSellers: true,
@@ -135,6 +175,41 @@ export default function Home() {
         reviews: true,
     });
     const [errors, setErrors] = useState({});
+    const heroSlides = [
+        ...new Map(
+            [...bestSellers, ...newDrops]
+                .filter((product) => product.image_url)
+                .map((product) => [product.id, product]),
+        ).values(),
+    ]
+        .slice(0, fallbackHeroSlides.length)
+        .map((product) => ({
+            id: product.id,
+            name: product.name,
+            category: product.category?.name ?? t("Customer favorites"),
+            image: product.image_url,
+            to: `/products/${product.id}`,
+        }));
+    heroSlides.push(
+        ...fallbackHeroSlides.slice(
+            0,
+            fallbackHeroSlides.length - heroSlides.length,
+        ),
+    );
+
+    useEffect(() => {
+        if (
+            heroPaused ||
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ) {
+            return undefined;
+        }
+
+        const interval = window.setInterval(() => {
+            setActiveHeroSlide((current) => (current + 1) % heroSlides.length);
+        }, 5500);
+        return () => window.clearInterval(interval);
+    }, [heroPaused, heroSlides.length]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -207,24 +282,35 @@ export default function Home() {
 
     return (
         <div className="space-y-14 pb-8 sm:space-y-20">
-            <section className="relative isolate overflow-hidden rounded-3xl bg-gradient-to-br from-orange-50 via-orange-100 to-amber-100 px-5 py-9 dark:from-background dark:via-secondary dark:to-background sm:px-10 sm:py-12 lg:px-14 lg:py-16">
-                <div className="pointer-events-none absolute -top-20 -right-20 -z-10 size-64 rounded-full bg-orange-200/50 blur-3xl dark:bg-primary/10" />
-                <div className="grid items-center gap-8 md:grid-cols-[1.05fr_0.95fr] lg:gap-12">
-                    <div className="max-w-xl">
-                        <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-card/80 px-3 py-1.5 text-xs font-semibold tracking-wide text-primary sm:text-sm">
+            <section
+                className="relative isolate overflow-hidden rounded-[2rem] border border-orange-200/70 bg-gradient-to-br from-[#fffaf4] via-[#fff5e9] to-[#f8eadb] px-5 py-7 shadow-sm dark:border-border dark:from-background dark:via-secondary dark:to-background sm:px-9 sm:py-10 lg:px-12 lg:py-12"
+                onMouseEnter={() => setHeroPaused(true)}
+                onMouseLeave={() => setHeroPaused(false)}
+                onFocus={() => setHeroPaused(true)}
+                onBlur={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget)) {
+                        setHeroPaused(false);
+                    }
+                }}
+            >
+                <div className="pointer-events-none absolute -top-28 -right-16 -z-10 size-80 rounded-full bg-orange-300/20 blur-3xl dark:bg-primary/10" />
+                <div className="pointer-events-none absolute -bottom-36 left-1/4 -z-10 size-80 rounded-full bg-amber-200/30 blur-3xl dark:bg-primary/5" />
+                <div className="grid items-center gap-9 md:grid-cols-[1.02fr_0.98fr] lg:gap-12">
+                    <div className="max-w-xl py-1">
+                        <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-orange-200/80 bg-white/80 px-3.5 py-2 text-xs font-semibold tracking-wide text-primary shadow-sm dark:border-border dark:bg-card/80 sm:text-sm">
                             <Sparkles className="size-4" aria-hidden="true" />
                             {t("Good finds, all in one place")}
                         </p>
-                        <h1 className="text-4xl leading-[1.08] font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+                        <h1 className="max-w-lg text-4xl leading-[1.08] font-bold tracking-tight text-foreground sm:text-5xl lg:text-[3.5rem]">
                             {t("Find your next favorite thing.")}
                         </h1>
-                        <p className="mt-5 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
+                        <p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
                             {t("Discover thoughtful picks for your home, your everyday, and everything in between.")}
                         </p>
                         <Button
                             asChild
                             size="lg"
-                            className="mt-7 h-11 rounded-full px-6 text-base"
+                            className="mt-7 h-12 rounded-full px-7 text-base shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5"
                         >
                             <Link
                                 to="/products"
@@ -237,21 +323,134 @@ export default function Home() {
                                 />
                             </Link>
                         </Button>
-                        <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-                            <Check
-                                className="size-4 text-primary"
-                                aria-hidden="true"
-                            />
-                            {t("Curated picks, delivered nationwide")}
+                        <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                            <span className="inline-flex items-center gap-2">
+                                <Check
+                                    className="size-4 text-primary"
+                                    aria-hidden="true"
+                                />
+                                {t("Curated picks, delivered nationwide")}
+                            </span>
+                            <span className="inline-flex items-center gap-2">
+                                <ShieldCheck
+                                    className="size-4 text-primary"
+                                    aria-hidden="true"
+                                />
+                                {t("Secure digital payments")}
+                            </span>
                         </div>
                     </div>
-                    <div className="mx-auto w-full max-w-md">
-                        <img
-                            src={heroArt}
-                            alt={t("Illustration of PonnoKini shopping bags")}
-                            className="w-full rounded-2xl"
-                            fetchPriority="high"
-                        />
+                    <div className="mx-auto w-full max-w-lg">
+                        <div className="rounded-[1.75rem] border border-white/80 bg-white/80 p-2.5 shadow-2xl shadow-orange-950/10 backdrop-blur-sm dark:border-border dark:bg-card/80 sm:p-3">
+                            <div
+                                className="group relative overflow-hidden rounded-[1.3rem] bg-secondary"
+                                role="region"
+                                aria-roledescription="carousel"
+                                aria-label={t("Featured products")}
+                            >
+                                <div className="aspect-[5/4] sm:aspect-[4/3]">
+                                    <Link
+                                        to={heroSlides[activeHeroSlide].to}
+                                        className="relative block size-full overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-primary"
+                                    >
+                                        <img
+                                            src={heroSlides[activeHeroSlide].image}
+                                            alt={heroSlides[activeHeroSlide].name}
+                                            className="size-full object-cover transition-transform duration-700 group-hover:scale-105 motion-reduce:transition-none"
+                                            fetchPriority="high"
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
+                                        <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-4 text-white sm:p-5">
+                                            <div className="min-w-0">
+                                                <p className="mb-1 text-[11px] font-semibold tracking-[0.16em] text-white/75 uppercase">
+                                                    {t(heroSlides[activeHeroSlide].category)}
+                                                </p>
+                                                <h2 className="line-clamp-2 text-lg font-semibold leading-snug sm:text-xl">
+                                                    {t(heroSlides[activeHeroSlide].name)}
+                                                </h2>
+                                            </div>
+                                            <span className="mb-0.5 flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 backdrop-blur-md">
+                                                <ArrowRight
+                                                    className="size-5"
+                                                    aria-hidden="true"
+                                                />
+                                            </span>
+                                        </div>
+                                    </Link>
+                                    <div className="absolute top-3 left-3 flex items-center gap-2 rounded-full border border-white/40 bg-white/90 px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm backdrop-blur-md">
+                                        <Sparkles
+                                            className="size-3.5 text-primary"
+                                            aria-hidden="true"
+                                        />
+                                        {t("Featured finds")}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 px-1 pt-3">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-9 shrink-0 rounded-full border-border bg-card"
+                                    aria-label={t("Previous product")}
+                                    onClick={() =>
+                                        setActiveHeroSlide(
+                                            (current) =>
+                                                (current - 1 + heroSlides.length) %
+                                                heroSlides.length,
+                                        )
+                                    }
+                                >
+                                    <ChevronLeft
+                                        className="size-4"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                                <div className="flex items-center justify-center gap-1.5">
+                                    {heroSlides.map((slide, index) => (
+                                        <button
+                                            key={slide.id}
+                                            type="button"
+                                            className={`h-2 rounded-full transition-all motion-reduce:transition-none ${
+                                                activeHeroSlide === index
+                                                    ? "w-6 bg-primary"
+                                                    : "w-2 bg-primary/25 hover:bg-primary/50"
+                                            }`}
+                                            aria-label={t("Show product :number", {
+                                                number: index + 1,
+                                            })}
+                                            aria-current={
+                                                activeHeroSlide === index
+                                                    ? "true"
+                                                    : undefined
+                                            }
+                                            onClick={() =>
+                                                setActiveHeroSlide(index)
+                                            }
+                                        />
+                                    ))}
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="size-9 shrink-0 rounded-full border-border bg-card"
+                                    aria-label={t("Next product")}
+                                    onClick={() =>
+                                        setActiveHeroSlide(
+                                            (current) =>
+                                                (current + 1) %
+                                                heroSlides.length,
+                                        )
+                                    }
+                                >
+                                    <ChevronRight
+                                        className="size-4"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
