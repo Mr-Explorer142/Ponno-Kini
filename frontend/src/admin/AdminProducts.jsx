@@ -5,7 +5,6 @@ import {
     Pencil,
     Plus,
     Search,
-    Sparkles,
     Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,6 @@ export default function AdminProducts() {
     const [removeImage, setRemoveImage] = useState(false);
     const [saving, setSaving] = useState(false);
     const [generatingDescription, setGeneratingDescription] = useState(false);
-    const [generatingImage, setGeneratingImage] = useState(false);
 
     const loadProducts = useCallback(async (signal) => {
         try {
@@ -171,47 +169,6 @@ export default function AdminProducts() {
             setError(messageFrom(requestError, "A description could not be generated."));
         } finally {
             setGeneratingDescription(false);
-        }
-    };
-
-    const generateProductImage = async () => {
-        if (!draft.name.trim()) {
-            setError("Enter a product name before generating an image.");
-            return;
-        }
-
-        setGeneratingImage(true);
-        setError("");
-        setNotice("");
-        try {
-            const response = await api.post("/ai/generate-image", {
-                product_name: draft.name,
-                description: draft.description,
-            });
-            const { image: imageData, mime_type: mimeType } = response.data;
-            const binary = atob(imageData);
-            const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
-            const extension = {
-                "image/png": "png",
-                "image/jpeg": "jpg",
-                "image/webp": "webp",
-            }[mimeType];
-
-            if (!extension) {
-                throw new Error("Gemini returned an unsupported image format.");
-            }
-
-            const filename = `${draft.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") || "product"}.${extension}`;
-            setImage(new File([bytes], filename, { type: mimeType }));
-            setImagePreview(`data:${mimeType};base64,${imageData}`);
-            setRemoveImage(false);
-            setNotice("Generated image is ready. Save the product to publish it.");
-        } catch (requestError) {
-            setError(
-                messageFrom(requestError, "A product image could not be generated."),
-            );
-        } finally {
-            setGeneratingImage(false);
         }
     };
 
@@ -399,7 +356,7 @@ export default function AdminProducts() {
                             <div>
                                 <h4 className="text-sm font-semibold">Product image</h4>
                                 <p className="mt-1 text-xs text-muted-foreground">
-                                    Upload an image or generate a product photo with Gemini.
+                                    Upload an image for this product.
                                 </p>
                             </div>
                             {imagePreview ? (
@@ -427,15 +384,6 @@ export default function AdminProducts() {
                                         onChange={selectImage}
                                     />
                                 </label>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={generatingImage || !draft.name.trim()}
-                                    onClick={generateProductImage}
-                                >
-                                    <Sparkles />
-                                    {generatingImage ? "Generating image..." : "Generate image with Gemini"}
-                                </Button>
                                 {(imagePreview || removeImage) && (
                                     <Button
                                         type="button"

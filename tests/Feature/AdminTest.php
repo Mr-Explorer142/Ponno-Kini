@@ -231,6 +231,35 @@ it('generates product images with the configured Gemini image model', function (
         && str_contains($request['input'][0]['text'], 'Blue ceramic mug'));
 });
 
+it('retries temporary Gemini description generation failures', function () {
+    $admin = User::factory()->create()->assignRole('admin');
+    Sanctum::actingAs($admin);
+    config([
+        'services.gemini.key' => 'test-key',
+        'services.gemini.model' => 'gemini-3.8-flash',
+    ]);
+
+    Http::fake([
+        'generativelanguage.googleapis.com/v1beta/models/*:generateContent' => Http::sequence()
+            ->push(['error' => ['code' => 503]], 503)
+            ->push([
+                'candidates' => [[
+                    'content' => [
+                        'parts' => [['text' => 'A durable everyday product.']],
+                    ],
+                ]],
+            ]),
+    ]);
+
+    $this->postJson('/api/ai/generate-description', [
+        'product_name' => 'Everyday bag',
+        'features' => 'Lightweight and durable',
+    ])->assertOk()
+        ->assertJsonPath('description', 'A durable everyday product.');
+
+    Http::assertSentCount(2);
+});
+
 it('allows admins to remove the current product image', function () {
     $admin = User::factory()->create()->assignRole('admin');
     $product = Product::factory()->create([

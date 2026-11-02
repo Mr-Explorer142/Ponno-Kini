@@ -412,14 +412,33 @@ class DashboardController extends Controller
 
         return $this->remember('orders-heatmap', $days, function () use ($days) {
             [$start, $end] = $this->dateRange($days);
+            [$weekdayExpression, $hourExpression] = match (DB::connection()->getDriverName()) {
+                'sqlite' => [
+                    'CAST(strftime(\'%w\', orders.created_at) AS INTEGER)',
+                    'CAST(strftime(\'%H\', orders.created_at) AS INTEGER)',
+                ],
+                'mysql', 'mariadb' => [
+                    'DAYOFWEEK(orders.created_at) - 1',
+                    'HOUR(orders.created_at)',
+                ],
+                'pgsql' => [
+                    'EXTRACT(DOW FROM orders.created_at)::integer',
+                    'EXTRACT(HOUR FROM orders.created_at)::integer',
+                ],
+                'sqlsrv' => [
+                    '(DATEPART(weekday, orders.created_at) + @@DATEFIRST - 2) % 7',
+                    'DATEPART(hour, orders.created_at)',
+                ],
+                default => throw new \RuntimeException('Unsupported database driver for order heatmap.'),
+            };
             $counts = Order::query()
                 ->valid()
                 ->where('orders.created_at', '>=', $start)
                 ->where('orders.created_at', '<', $end)
-                ->selectRaw('DAYOFWEEK(orders.created_at) - 1 as weekday')
-                ->selectRaw('HOUR(orders.created_at) as hour')
+                ->selectRaw("{$weekdayExpression} as weekday")
+                ->selectRaw("{$hourExpression} as hour")
                 ->selectRaw('COUNT(*) as orders')
-                ->groupByRaw('DAYOFWEEK(orders.created_at), HOUR(orders.created_at)')
+                ->groupByRaw("{$weekdayExpression}, {$hourExpression}")
                 ->get()
                 ->keyBy(fn ($row) => $row->weekday.':'.$row->hour);
 

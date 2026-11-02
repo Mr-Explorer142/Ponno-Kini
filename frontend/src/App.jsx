@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import OAuthCallback from "./pages/OAuthCallback";
 import ProtectedRoute from "./routes/ProtectedRoute";
@@ -31,6 +31,28 @@ import { t } from "./i18n";
 
 const Page = ({ title }) => <h1 className="text-3xl font-bold">{t(title)}</h1>;
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+
+function HomeRoute() {
+    const user = useAuthStore((state) => state.user);
+    const userLoaded = useAuthStore((state) => state.userLoaded);
+
+    if (!userLoaded) {
+        return (
+            <div
+                className="grid min-h-64 place-items-center text-sm text-muted-foreground"
+                role="status"
+            >
+                Loading your account...
+            </div>
+        );
+    }
+
+    const isAdmin = user?.roles?.some((role) =>
+        typeof role === "string" ? role === "admin" : role?.name === "admin",
+    );
+
+    return isAdmin ? <Navigate to="/admin" replace /> : <Home />;
+}
 
 function App() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -83,7 +105,7 @@ function App() {
                     <Route path="/social-login" element={<OAuthCallback />} />
 
                     {/* Public catalog routes */}
-                    <Route path="/" element={<Home />} />
+                    <Route path="/" element={<HomeRoute />} />
                     <Route path="/products" element={<ProductCatalog />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
                     <Route path="/cart" element={<Cart />} />

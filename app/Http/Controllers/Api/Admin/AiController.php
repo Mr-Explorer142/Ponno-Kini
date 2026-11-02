@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -49,7 +51,14 @@ class AiController extends Controller
 
         // 3. Make the API Call to Gemini
         try {
-            $response = Http::withHeaders([
+            $response = Http::retry(
+                3,
+                fn (int $attempt) => $attempt * 500,
+                fn (\Throwable $exception) => $exception instanceof ConnectionException
+                    || ($exception instanceof RequestException
+                        && in_array($exception->response->status(), [429, 500, 502, 503, 504], true)),
+                throw: false,
+            )->withHeaders([
                 'x-goog-api-key' => $apiKey,
                 'Content-Type' => 'application/json',
             ])->post($url, [
@@ -72,9 +81,12 @@ class AiController extends Controller
 
         if ($response->failed()) {
             Log::error('Gemini API Error: '.$response->body());
+            $message = in_array($response->status(), [429, 503], true)
+                ? 'The AI service is temporarily busy. Please try again in a moment.'
+                : 'Failed to connect to AI service.';
 
             return response()->json([
-                'message' => 'Failed to connect to AI service.',
+                'message' => $message,
                 'debug_error' => config('app.debug') ? ($response->json() ?? $response->body()) : null,
             ], $response->status());
         }

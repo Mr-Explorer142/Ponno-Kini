@@ -13,6 +13,43 @@ const moneyFormatter = new Intl.NumberFormat("en-BD", {
 const numberFormatter = new Intl.NumberFormat("en-BD");
 const ranges = [7, 30, 90];
 const statKeys = Object.keys(dashboardStats);
+const statTones = {
+    emerald: {
+        card: "border-emerald-500/25 bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-card",
+        label: "text-emerald-800 dark:text-emerald-300",
+        value: "text-emerald-950 dark:text-emerald-200",
+    },
+    blue: {
+        card: "border-blue-500/25 bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-card",
+        label: "text-blue-800 dark:text-blue-300",
+        value: "text-blue-950 dark:text-blue-200",
+    },
+    violet: {
+        card: "border-violet-500/25 bg-gradient-to-br from-violet-500/15 via-violet-500/5 to-card",
+        label: "text-violet-800 dark:text-violet-300",
+        value: "text-violet-950 dark:text-violet-200",
+    },
+    cyan: {
+        card: "border-cyan-500/25 bg-gradient-to-br from-cyan-500/15 via-cyan-500/5 to-card",
+        label: "text-cyan-800 dark:text-cyan-300",
+        value: "text-cyan-950 dark:text-cyan-200",
+    },
+    orange: {
+        card: "border-orange-500/25 bg-gradient-to-br from-orange-500/15 via-orange-500/5 to-card",
+        label: "text-orange-800 dark:text-orange-300",
+        value: "text-orange-950 dark:text-orange-200",
+    },
+    yellow: {
+        card: "border-yellow-500/25 bg-gradient-to-br from-yellow-500/15 via-yellow-500/5 to-card",
+        label: "text-yellow-800 dark:text-yellow-300",
+        value: "text-yellow-950 dark:text-yellow-200",
+    },
+    red: {
+        card: "border-red-500/25 bg-gradient-to-br from-red-500/15 via-red-500/5 to-card",
+        label: "text-red-800 dark:text-red-300",
+        value: "text-red-950 dark:text-red-200",
+    },
+};
 
 function formatMoney(value) {
     return moneyFormatter.format(Number(value) || 0);
@@ -86,12 +123,14 @@ function ChangeBadge({ value }) {
     );
 }
 
-function MetricCard({ title, metric, money = false }) {
+function MetricCard({ title, metric, money = false, tone }) {
     return (
-        <article className="min-w-0 rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">{title}</p>
+        <article
+            className={`min-w-0 rounded-xl border p-5 transition-shadow hover:shadow-md ${tone.card}`}
+        >
+            <p className={`text-sm font-medium ${tone.label}`}>{title}</p>
             <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-                <p className="text-2xl font-bold tracking-tight">
+                <p className={`text-2xl font-bold tracking-tight ${tone.value}`}>
                     {money
                         ? formatMoney(metric.value)
                         : numberFormatter.format(metric.value)}
@@ -102,13 +141,15 @@ function MetricCard({ title, metric, money = false }) {
     );
 }
 
-function CountCard({ title, value, warning = "text-foreground" }) {
+function CountCard({ title, value, tone }) {
     return (
-        <article className="min-w-0 rounded-xl border border-border bg-card p-5">
-            <p className="text-sm text-muted-foreground">{title}</p>
+        <article
+            className={`min-w-0 rounded-xl border p-5 transition-shadow hover:shadow-md ${tone.card}`}
+        >
+            <p className={`text-sm font-medium ${tone.label}`}>{title}</p>
             <p
                 className={`mt-3 text-2xl font-bold tracking-tight ${
-                    value > 0 ? warning : "text-foreground"
+                    value > 0 ? tone.value : "text-foreground"
                 }`}
             >
                 {numberFormatter.format(value)}
@@ -140,12 +181,20 @@ function ChartPanel({ title, entry, onRetry, children, className = "" }) {
     );
 }
 
-function DonutChart({ rows, labelKey, valueKey }) {
+function DonutChart({
+    rows,
+    labelKey,
+    valueKey,
+    statusColors = false,
+    categoryColors,
+}) {
     return (
         <Chart
             type="donut"
             height={270}
             series={rows.map((row) => Number(row[valueKey]))}
+            statusColors={statusColors}
+            categoryColors={categoryColors}
             options={{
                 labels: rows.map((row) => row[labelKey]),
                 legend: { position: "bottom" },
@@ -276,31 +325,38 @@ export default function Dashboard() {
                             title="Revenue"
                             metric={summary.data.revenue}
                             money
+                            tone={statTones.emerald}
                         />
-                        <MetricCard title="Orders" metric={summary.data.orders} />
+                        <MetricCard
+                            title="Orders"
+                            metric={summary.data.orders}
+                            tone={statTones.blue}
+                        />
                         <MetricCard
                             title="Average order value"
                             metric={summary.data.average_order_value}
                             money
+                            tone={statTones.violet}
                         />
                         <MetricCard
                             title="New customers"
                             metric={summary.data.new_customers}
+                            tone={statTones.cyan}
                         />
                         <CountCard
                             title="Orders to process"
                             value={summary.data.orders_to_process}
-                            warning="text-amber-700 dark:text-amber-400"
+                            tone={statTones.orange}
                         />
                         <CountCard
                             title="Low-stock products"
                             value={summary.data.low_stock_products}
-                            warning="text-amber-700 dark:text-amber-400"
+                            tone={statTones.yellow}
                         />
                         <CountCard
                             title="Out-of-stock products"
                             value={summary.data.out_of_stock_products}
-                            warning="text-red-700 dark:text-red-400"
+                            tone={statTones.red}
                         />
                     </>
                 )}
@@ -379,6 +435,7 @@ export default function Dashboard() {
                             rows={rows}
                             labelKey="status"
                             valueKey="count"
+                            statusColors
                         />
                     )}
                 </ChartPanel>
@@ -393,6 +450,7 @@ export default function Dashboard() {
                             rows={rows}
                             labelKey="method"
                             valueKey="orders"
+                            categoryColors={{ cod: "primary", online: "green" }}
                         />
                     )}
                 </ChartPanel>
@@ -407,6 +465,7 @@ export default function Dashboard() {
                             rows={rows}
                             labelKey="status"
                             valueKey="count"
+                            statusColors
                         />
                     )}
                 </ChartPanel>
@@ -577,6 +636,11 @@ export default function Dashboard() {
                                     rows={data.by_signup_method}
                                     labelKey="method"
                                     valueKey="count"
+                                    categoryColors={{
+                                        email: "primary",
+                                        google: "green",
+                                        github: "violet",
+                                    }}
                                 />
                             </div>
                         </div>
@@ -619,6 +683,7 @@ export default function Dashboard() {
                                 },
                                 dataLabels: { enabled: false },
                             }}
+                            emptyMessage="No reviews in this period"
                         />
                     )}
                 </ChartPanel>
