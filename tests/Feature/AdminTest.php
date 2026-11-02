@@ -474,4 +474,9 @@ it('lists unanswered customer questions and allows an admin to answer them', fun
     ])->assertOk();
 
     expect($question->fresh()->answer)->toBe('Yes, please check the available options.');
+
+    $this->getJson("/api/product/{$product->id}")
+        ->assertOk()
+        ->assertJsonPath('data.questions.0.answer', 'Yes, please check the available options.')
+        ->assertJsonPath('data.questions.0.answered_by', $admin->name);
 });
