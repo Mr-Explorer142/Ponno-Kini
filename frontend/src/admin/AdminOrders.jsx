@@ -10,9 +10,10 @@ import {
     Pagination,
 } from "./AdminShared";
 import { formatDate, formatPrice } from "./AdminFormat";
+import StatusBadge from "./StatusBadge";
 
 const orderStatuses = ["pending", "processing", "completed", "cancelled", "failed"];
-const paymentStatuses = ["pending", "paid", "failed", "refunded"];
+const paymentStatuses = ["pending", "paid", "failed", "cancelled", "refunded"];
 const blankOrder = () => ({
     user_id: "",
     status: "pending",
@@ -333,8 +334,8 @@ export default function AdminOrders() {
                                             <p className="text-xs text-muted-foreground">{order.user.email}</p>
                                         </td>
                                         <td className="px-4 py-3 text-muted-foreground">{formatDate(order.created_at)}</td>
-                                        <td className="px-4 py-3">{titleCase(order.status)}</td>
-                                        <td className="px-4 py-3">{titleCase(order.payment_status)}</td>
+                                        <td className="px-4 py-3"><StatusBadge status={order.status} /></td>
+                                        <td className="px-4 py-3"><StatusBadge status={order.payment_status} type="payment" /></td>
                                         <td className="px-4 py-3 font-medium">{formatPrice(order.total_amount)}</td>
                                         <td className="px-4 py-3 text-right">
                                             <Button type="button" variant="outline" size="sm" onClick={() => openOrder(order)}>
@@ -403,6 +404,7 @@ export default function AdminOrders() {
                         </label>
                         <label className="flex flex-col gap-2 text-sm font-medium">
                             Order status
+                            <StatusBadge status={selected.status} />
                             <select
                                 required
                                 value={draft.status}
@@ -619,10 +621,10 @@ export default function AdminOrders() {
                         </div>
                         <div className="space-y-1.5 text-sm">
                             <p className="font-medium">Payment status</p>
-                            <p>{titleCase(selected.payment_status)}</p>
+                            <StatusBadge status={selected.payment_status} type="payment" />
                             {selected.latest_payment && (
                                 <p className="text-xs text-muted-foreground">
-                                    {selected.latest_payment.gateway ?? "Payment"} · {selected.latest_payment.transaction_id ?? "No transaction ID"} · {titleCase(selected.latest_payment.status)}
+                                    {selected.latest_payment.gateway ?? "Payment"} · {selected.latest_payment.transaction_id ?? "No transaction ID"} · <StatusBadge status={selected.latest_payment.status} type="payment" />
                                 </p>
                             )}
                         </div>
@@ -662,9 +664,12 @@ export default function AdminOrders() {
                             </p>
                             <h4 className="pt-3 font-semibold">Payments</h4>
                             {selected.payments?.length ? selected.payments.map((payment) => (
-                                <p key={payment.id} className="text-muted-foreground">
-                                    {payment.gateway ?? "Gateway"} · {payment.transaction_id ?? "—"} · {titleCase(payment.status)} · {formatPrice(payment.amount)}
-                                </p>
+                                <div key={payment.id} className="space-y-1 rounded-lg border border-border p-3">
+                                    <p className="text-muted-foreground">
+                                        {payment.gateway ?? "Gateway"} · {payment.transaction_id ?? "—"} · {formatPrice(payment.amount)}
+                                    </p>
+                                    <StatusBadge status={payment.status} type="payment" />
+                                </div>
                             )) : <p className="text-muted-foreground">No payment attempts.</p>}
                         </div>
                     </div>

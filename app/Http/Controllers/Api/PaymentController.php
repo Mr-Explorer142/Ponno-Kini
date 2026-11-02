@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\User;
 use App\Notifications\PaymentSuccessfulNotification;
+use App\Notifications\StorefrontNotification;
 use App\Services\OrderInventoryService;
 use App\Services\SSLCommerzService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Throwable;
 
@@ -214,6 +217,19 @@ class PaymentController extends Controller
         try {
             $order->loadMissing('user');
             $order->user?->notify(new PaymentSuccessfulNotification($order));
+            Notification::send(User::role('admin')->get(), new StorefrontNotification(
+                'payment.succeeded',
+                "Payment received for order #{$order->order_number}.",
+                '/admin/orders',
+                ['order_id' => $order->id, 'amount' => $order->total_amount],
+            ));
+
+            $order->user?->notify(new StorefrontNotification(
+                'order.status_changed',
+                "Your order #{$order->order_number} is now processing.",
+                '/orders',
+                ['order_id' => $order->id, 'status' => 'processing'],
+            ));
         } catch (Throwable $e) {
             Log::error('Payment success notification failed', [
                 'order_id' => $order->id,
@@ -245,6 +261,9 @@ class PaymentController extends Controller
             }
 
             $order = Order::query()->lockForUpdate()->findOrFail($payment->order_id);
+            $statusChanged = false;
+            $paymentStatusChanged = $order->payment_status !== 'paid'
+                && $order->payment_status !== $paymentStatus;
 
             if ($payment->status !== 'paid') {
                 $payment->update([
@@ -254,11 +273,30 @@ class PaymentController extends Controller
             }
 
             if ($order->payment_status !== 'paid') {
+                $statusChanged = $order->status !== $orderStatus;
                 $order->update([
                     'payment_status' => $paymentStatus,
                     'status' => $orderStatus,
                 ]);
                 $inventory->synchronizeReservation($order);
+            }
+
+            if ($statusChanged) {
+                $order->user?->notify(new StorefrontNotification(
+                    'order.status_changed',
+                    "Your order #{$order->order_number} is now {$order->status}.",
+                    '/orders',
+                    ['order_id' => $order->id, 'status' => $order->status],
+                ));
+            }
+
+            if ($paymentStatusChanged && in_array($paymentStatus, ['failed', 'cancelled'], true)) {
+                $order->user?->notify(new StorefrontNotification(
+                    "payment.{$paymentStatus}",
+                    "Payment for order #{$order->order_number} was {$paymentStatus}.",
+                    '/orders',
+                    ['order_id' => $order->id, 'payment_status' => $paymentStatus],
+                ));
             }
 
             return $order;

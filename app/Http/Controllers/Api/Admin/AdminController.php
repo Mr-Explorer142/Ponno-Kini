@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Question;
 use App\Models\User;
 use App\Notifications\EmailVerificationCodeNotification;
+use App\Notifications\StorefrontNotification;
 use App\Services\EmailVerificationCodeService;
 use App\Services\ImageService;
 use App\Services\OrderInventoryService;
@@ -85,7 +86,7 @@ class AdminController extends Controller
     {
         $validated = $request->validate([
             'status' => 'nullable|in:pending,processing,completed,cancelled,failed',
-            'payment_status' => 'nullable|in:pending,paid,failed,refunded',
+            'payment_status' => 'nullable|in:pending,paid,failed,cancelled,refunded',
             'page' => 'nullable|integer|min:1',
         ]);
 
@@ -146,6 +147,13 @@ class AdminController extends Controller
             $order->items()->createMany($items);
             $inventory->synchronizeReservation($order);
 
+            $customer->notify(new StorefrontNotification(
+                'order.placed',
+                "Your order #{$order->order_number} was placed.",
+                '/orders',
+                ['order_id' => $order->id],
+            ));
+
             return response()->json($this->orderData(
                 $order->load(['user:id,name,email', 'items.product:id,name,image_path', 'payments', 'latestPayment']),
             ), 201);
@@ -156,9 +164,10 @@ class AdminController extends Controller
     {
         $validated = $this->validateOrder($request, true);
 
-        return DB::transaction(function () use ($validated, $order, $inventory) {
+        $updatedOrder = DB::transaction(function () use ($validated, $order, $inventory) {
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);
             $inventory->release($order);
+            $previousStatus = $order->status;
             $customer = $this->customerForOrder($validated['user_id']);
             [$items, $totalAmount, $discountAmount] = $this->priceOrderItems(
                 $validated['items'],
@@ -177,10 +186,19 @@ class AdminController extends Controller
             $order->items()->createMany($items);
             $inventory->synchronizeReservation($order);
 
-            return response()->json($this->orderData(
-                $order->load(['user:id,name,email', 'items.product:id,name,image_path', 'payments', 'latestPayment']),
-            ));
+            if ($previousStatus !== $order->status) {
+                $order->user?->notify(new StorefrontNotification(
+                    'order.status_changed',
+                    "Your order #{$order->order_number} is now {$order->status}.",
+                    '/orders',
+                    ['order_id' => $order->id, 'status' => $order->status],
+                ));
+            }
+
+            return $order->load(['user:id,name,email', 'items.product:id,name,image_path', 'payments', 'latestPayment']);
         });
+
+        return response()->json($this->orderData($updatedOrder));
     }
 
     public function questions()

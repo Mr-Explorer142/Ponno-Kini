@@ -20,6 +20,8 @@ import AdminLayout from "./admin/AdminLayout";
 import AdminProducts from "./admin/AdminProducts";
 import AdminCategories from "./admin/AdminCategories";
 import AdminOrders from "./admin/AdminOrders";
+import AdminPayments from "./admin/AdminPayments";
+import AdminNotifications from "./admin/AdminNotifications";
 import AdminQuestions from "./admin/AdminQuestions";
 import AdminUsers from "./admin/AdminUsers";
 import AdminSettings from "./admin/AdminSettings";
@@ -143,6 +145,8 @@ function App() {
                                 <Route path="products" element={<AdminProducts />} />
                                 <Route path="categories" element={<AdminCategories />} />
                                 <Route path="orders" element={<AdminOrders />} />
+                                <Route path="payments" element={<AdminPayments />} />
+                                <Route path="notifications" element={<AdminNotifications />} />
                                 <Route path="questions" element={<AdminQuestions />} />
                                 <Route path="users" element={<AdminUsers />} />
                                 <Route

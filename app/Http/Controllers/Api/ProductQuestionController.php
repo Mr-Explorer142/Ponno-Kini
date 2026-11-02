@@ -6,8 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\QuestionResource;
 use App\Models\Product;
 use App\Models\Question;
+use App\Models\User;
+use App\Notifications\StorefrontNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 
 class ProductQuestionController extends Controller
 {
@@ -18,10 +22,21 @@ class ProductQuestionController extends Controller
             'question' => 'required|string|max:1000',
         ]);
 
-        $question = $product->questions()->create([
-            'user_id' => $request->user()->id,
-            'question' => $validated['question'],
-        ]);
+        $question = DB::transaction(function () use ($request, $product, $validated) {
+            $question = $product->questions()->create([
+                'user_id' => $request->user()->id,
+                'question' => $validated['question'],
+            ]);
+
+            Notification::send(User::role('admin')->get(), new StorefrontNotification(
+                'question.submitted',
+                "{$request->user()->name} asked a question about {$product->name}.",
+                '/admin/questions',
+                ['question_id' => $question->id, 'product_id' => $product->id],
+            ));
+
+            return $question;
+        });
 
         Cache::forget("products.show.{$product->id}");
 
@@ -38,10 +53,21 @@ class ProductQuestionController extends Controller
             'answer' => 'required|string|max:2000',
         ]);
 
-        $question->update([
-            'answer' => $validated['answer'],
-            'answered_by' => $request->user()->id,
-        ]);
+        $question = DB::transaction(function () use ($request, $question, $validated) {
+            $question->update([
+                'answer' => $validated['answer'],
+                'answered_by' => $request->user()->id,
+            ]);
+
+            $question->user?->notify(new StorefrontNotification(
+                'question.answered',
+                "Your question about {$question->product->name} has been answered.",
+                "/products/{$question->product_id}",
+                ['question_id' => $question->id, 'product_id' => $question->product_id],
+            ));
+
+            return $question;
+        });
 
         Cache::forget("products.show.{$question->product_id}");
 

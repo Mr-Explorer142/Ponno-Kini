@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\User;
+use App\Notifications\StorefrontNotification;
 use App\Services\OrderInventoryService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 class OrderController extends Controller
@@ -115,6 +118,20 @@ class OrderController extends Controller
             $order->items()->createMany($orderItemsData);
             $inventory->reserve($order);
 
+            $request->user()->notify(new StorefrontNotification(
+                'order.placed',
+                "Your order #{$order->order_number} was placed.",
+                '/orders',
+                ['order_id' => $order->id],
+            ));
+
+            Notification::send(User::role('admin')->get(), new StorefrontNotification(
+                'order.placed',
+                "New order #{$order->order_number} was submitted by {$request->user()->name}.",
+                '/admin/orders',
+                ['order_id' => $order->id],
+            ));
+
             return response()->json(new OrderResource($order->load('items.product')), 201);
 
         });
@@ -138,8 +155,18 @@ class OrderController extends Controller
 
         $order = DB::transaction(function () use ($order, $validated, $inventory) {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
+            $statusChanged = $lockedOrder->status !== $validated['status'];
             $lockedOrder->update(['status' => $validated['status']]);
             $inventory->synchronizeReservation($lockedOrder);
+
+            if ($statusChanged) {
+                $lockedOrder->user?->notify(new StorefrontNotification(
+                    'order.status_changed',
+                    "Your order #{$lockedOrder->order_number} is now {$lockedOrder->status}.",
+                    '/orders',
+                    ['order_id' => $lockedOrder->id, 'status' => $lockedOrder->status],
+                ));
+            }
 
             return $lockedOrder;
         });

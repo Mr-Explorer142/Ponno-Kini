@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Auth\SocialAuthController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductQuestionController;
@@ -63,6 +64,9 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
     // Auth endpoints
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
     // Profile management
     Route::patch('/profile', [ProfileController::class, 'update']);

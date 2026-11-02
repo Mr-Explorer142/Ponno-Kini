@@ -52,8 +52,10 @@ class OrderCancelNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
+            'type' => 'order.status_changed',
             'order_id' => $this->order->id,
             'message' => 'Payment cancelled for Order #' . $this->order->order_number,
+            'url' => '/orders',
             'amount' => $this->order->total_amount,
         ];
     }

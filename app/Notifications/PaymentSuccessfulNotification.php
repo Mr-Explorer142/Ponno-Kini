@@ -53,8 +53,10 @@ class PaymentSuccessfulNotification extends Notification implements ShouldQueue
     public function toArray(object $notifiable): array
     {
         return [
+            'type' => 'payment.succeeded',
             'order_id' => $this->order->id,
             'message' => 'Payment successful for Order #' . $this->order->order_number,
+            'url' => '/orders',
             'amount' => $this->order->total_amount,
         ];
     }

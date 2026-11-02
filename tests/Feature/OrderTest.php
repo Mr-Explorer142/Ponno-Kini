@@ -5,6 +5,8 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\PaymentSuccessfulNotification;
+use App\Notifications\StorefrontNotification;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
@@ -168,6 +170,64 @@ it('creates cash-on-delivery orders as pending and does not allow gateway paymen
         ->and(Payment::count())->toBe(0);
 });
 
+it('notifies the customer and admins when an order is placed and the customer when its status changes', function () {
+    Notification::fake();
+
+    $customer = User::factory()->create()->assignRole('customer');
+    $admin = User::factory()->create()->assignRole('admin');
+    $product = Product::factory()->create();
+    Sanctum::actingAs($customer);
+
+    $response = $this->postJson('/api/orders', [
+        'shipping_address' => [
+            'street' => '123 Test St',
+            'city' => 'Dhaka',
+            'postal_code' => '1000',
+            'country' => 'BD',
+            'phone' => '01700000000',
+        ],
+        'items' => [['product_id' => $product->id, 'quantity' => 1]],
+    ])->assertCreated();
+
+    $orderId = $response->json('id');
+    Notification::assertSentTo($customer, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'order.placed');
+    Notification::assertSentTo($admin, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'order.placed');
+
+    Sanctum::actingAs($admin);
+    $this->patchJson("/api/orders/{$orderId}/status", ['status' => 'processing'])
+        ->assertOk();
+
+    Notification::assertSentTo($customer, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'order.status_changed');
+});
+
+it('lists a user’s notifications and allows only that user to mark them as read', function () {
+    $customer = User::factory()->create();
+    $otherCustomer = User::factory()->create();
+    $notification = new StorefrontNotification(
+        'order.placed',
+        'Your order was placed.',
+        '/orders',
+        ['order_id' => 42],
+    );
+    $customer->notify($notification);
+    $notificationId = $customer->notifications()->firstOrFail()->id;
+
+    Sanctum::actingAs($customer);
+    $this->getJson('/api/notifications')
+        ->assertOk()
+        ->assertJsonPath('unread_count', 1)
+        ->assertJsonPath('notifications.0.data.type', 'order.placed');
+
+    Sanctum::actingAs($otherCustomer);
+    $this->patchJson("/api/notifications/{$notificationId}/read")->assertNotFound();
+
+    Sanctum::actingAs($customer);
+    $this->patchJson("/api/notifications/{$notificationId}/read")->assertOk();
+    $this->postJson('/api/notifications/read-all')->assertOk();
+
+    expect($customer->unreadNotifications()->count())->toBe(0);
+});
+
 it('restores reserved stock when an online payment fails', function () {
     $customer = User::factory()->create()->assignRole('customer');
     $product = Product::factory()->create(['stock' => 3]);
@@ -205,6 +265,7 @@ it('marks a validated SSLCommerz payment paid and redirects to the order result'
     Notification::fake();
 
     $customer = User::factory()->create();
+    $admin = User::factory()->create()->assignRole('admin');
     $order = Order::factory()->for($customer)->create([
         'total_amount' => 620,
         'delivery_charge' => 120,
@@ -242,4 +303,8 @@ it('marks a validated SSLCommerz payment paid and redirects to the order result'
         ->status->toBe('processing');
     expect(Payment::where('transaction_id', $transactionId)->value('status'))
         ->toBe('paid');
+
+    Notification::assertSentTo($customer, PaymentSuccessfulNotification::class);
+    Notification::assertSentTo($admin, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'payment.succeeded');
+    Notification::assertSentTo($customer, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'order.status_changed');
 });

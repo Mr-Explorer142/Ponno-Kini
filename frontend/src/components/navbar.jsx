@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import NotificationBell from "@/components/NotificationBell";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
 import { t } from "@/i18n";
@@ -216,6 +217,7 @@ export default function Navbar({ theme, onToggleTheme }) {
 
                     {isAuthenticated ? (
                         <>
+                            <NotificationBell />
                             <div className="relative">
                                 <Button
                                     type="button"
@@ -301,6 +303,7 @@ export default function Navbar({ theme, onToggleTheme }) {
                             </span>
                         </Link>
                     </Button>
+                    {isAuthenticated && <NotificationBell />}
                     <Button
                         ref={menuButtonRef}
                         type="button"
