@@ -172,6 +172,8 @@ export default function Home() {
     const [newDrops, setNewDrops] = useState([]);
     const [reviews, setReviews] = useState([]);
     const [activeReviewIndex, setActiveReviewIndex] = useState(0);
+    const activeReview = reviews[activeReviewIndex] ?? reviews[0];
+    const reviewerName = activeReview?.user ?? t("PonnoKini customer");
     const [activeHeroSlide, setActiveHeroSlide] = useState(0);
     const [heroPaused, setHeroPaused] = useState(false);
     const [loading, setLoading] = useState({
