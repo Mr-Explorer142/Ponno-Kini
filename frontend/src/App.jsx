@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import OAuthCallback from "./pages/OAuthCallback";
@@ -17,7 +17,6 @@ import Cart from "./pages/Cart";
 import OrderResult from "./pages/OrderResult";
 import AdminRoute from "./routes/AdminRoute";
 import AdminLayout from "./admin/AdminLayout";
-import AdminDashboard from "./admin/AdminDashboard";
 import AdminProducts from "./admin/AdminProducts";
 import AdminCategories from "./admin/AdminCategories";
 import AdminOrders from "./admin/AdminOrders";
@@ -31,6 +30,7 @@ import { useLocale } from "./locale-context";
 import { t } from "./i18n";
 
 const Page = ({ title }) => <h1 className="text-3xl font-bold">{t(title)}</h1>;
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 
 function App() {
     const fetchUser = useAuthStore((state) => state.fetchUser);
@@ -71,27 +71,6 @@ function App() {
                 }
             >
                 <Routes>
-                    <Route path="/admin" element={<AdminRoute />}>
-                        <Route element={<AdminLayout />}>
-                            <Route index element={<AdminDashboard />} />
-                            <Route path="products" element={<AdminProducts />} />
-                            <Route path="categories" element={<AdminCategories />} />
-                            <Route path="orders" element={<AdminOrders />} />
-                            <Route path="questions" element={<AdminQuestions />} />
-                            <Route path="users" element={<AdminUsers />} />
-                            <Route
-                                path="settings"
-                                element={
-                                    <AdminSettings
-                                        language={language}
-                                        setLanguage={setLanguage}
-                                        theme={theme}
-                                        onToggleTheme={toggleTheme}
-                                    />
-                                }
-                            />
-                        </Route>
-                    </Route>
                     {/* Public auth routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/register" element={<Register />} />
@@ -111,6 +90,52 @@ function App() {
 
                     {/* Protected routes */}
                     <Route element={<ProtectedRoute />}>
+                        <Route path="/admin" element={<AdminRoute />}>
+                            <Route element={<AdminLayout />}>
+                                <Route
+                                    index
+                                    element={
+                                        <Suspense
+                                            fallback={
+                                                <div
+                                                    className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+                                                    role="status"
+                                                    aria-label="Loading dashboard"
+                                                >
+                                                    {Array.from(
+                                                        { length: 6 },
+                                                        (_, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="h-52 animate-pulse rounded-xl bg-muted"
+                                                            />
+                                                        ),
+                                                    )}
+                                                </div>
+                                            }
+                                        >
+                                            <AdminDashboard />
+                                        </Suspense>
+                                    }
+                                />
+                                <Route path="products" element={<AdminProducts />} />
+                                <Route path="categories" element={<AdminCategories />} />
+                                <Route path="orders" element={<AdminOrders />} />
+                                <Route path="questions" element={<AdminQuestions />} />
+                                <Route path="users" element={<AdminUsers />} />
+                                <Route
+                                    path="settings"
+                                    element={
+                                        <AdminSettings
+                                            language={language}
+                                            setLanguage={setLanguage}
+                                            theme={theme}
+                                            onToggleTheme={toggleTheme}
+                                        />
+                                    }
+                                />
+                            </Route>
+                        </Route>
                         <Route path="/verify-email" element={<VerifyEmail />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/orders" element={<Orders />} />

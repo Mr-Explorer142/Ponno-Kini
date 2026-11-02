@@ -2,19 +2,22 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "@/store/useAuthStore";
 
 export default function AdminRoute() {
-    const { isAuthenticated, user, userLoaded } = useAuthStore();
+    const user = useAuthStore((state) => state.user);
 
-    if (!isAuthenticated) return <Navigate to="/login" replace />;
-    if (!userLoaded) {
+    if (!user) {
         return (
-            <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">
-                Checking administrator access...
+            <div className="grid min-h-screen place-items-center">
+                <div
+                    className="h-8 w-40 animate-pulse rounded-md bg-muted"
+                    aria-label="Loading administrator access"
+                />
             </div>
         );
     }
-    if (!user) return <Navigate to="/login" replace />;
-    if (!user.email_verified_at) return <Navigate to="/verify-email" replace />;
 
-    const isAdmin = user.roles?.some((role) => role.name === "admin");
-    return isAdmin ? <Outlet /> : <Navigate to="/products" replace />;
+    const isAdmin = user.roles?.some((role) =>
+        typeof role === "string" ? role === "admin" : role?.name === "admin",
+    );
+
+    return isAdmin ? <Outlet /> : <Navigate to="/" replace />;
 }
