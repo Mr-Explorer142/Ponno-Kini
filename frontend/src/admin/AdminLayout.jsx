@@ -12,6 +12,11 @@ import {
     ShoppingCart,
     Users,
 } from "lucide-react";
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/useAuthStore";
 import api from "@/api/axios";
 import { playNotificationSound } from "@/lib/notificationSound";
@@ -109,6 +114,30 @@ export default function AdminLayout() {
                         <h1 className="mt-1 text-lg font-bold">
                             Admin workspace
                         </h1>
+                        <div className="mt-3 flex items-center gap-2 lg:hidden">
+                            <Avatar className="size-8">
+                                <AvatarImage
+                                    src={user?.avatar ?? undefined}
+                                    alt={user?.name ?? "Admin"}
+                                />
+                                <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
+                                    {user?.name
+                                        ?.split(/\s+/)
+                                        .filter(Boolean)
+                                        .slice(0, 2)
+                                        .map((part) => part[0]?.toUpperCase())
+                                        .join("") || "A"}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-medium">
+                                    {user?.name}
+                                </p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                    {user?.email}
+                                </p>
+                            </div>
+                        </div>
                     </div>
                     <div className="flex items-center gap-1 lg:hidden">
                         <NavLink
@@ -197,10 +226,30 @@ export default function AdminLayout() {
                     )}
                 </section>
                 <div className="hidden border-t border-border px-5 py-4 lg:absolute lg:right-0 lg:bottom-0 lg:left-0 lg:block">
-                    <p className="truncate text-sm font-medium">{user?.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                        {user?.email}
-                    </p>
+                    <div className="flex min-w-0 items-center gap-3">
+                        <Avatar className="size-9">
+                            <AvatarImage
+                                src={user?.avatar ?? undefined}
+                                alt={user?.name ?? "Admin"}
+                            />
+                            <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
+                                {user?.name
+                                    ?.split(/\s+/)
+                                    .filter(Boolean)
+                                    .slice(0, 2)
+                                    .map((part) => part[0]?.toUpperCase())
+                                    .join("") || "A"}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                                {user?.name}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                                {user?.email}
+                            </p>
+                        </div>
+                    </div>
                     <div className="mt-3 flex items-center justify-between gap-3">
                         <NavLink
                             to="/admin/settings"

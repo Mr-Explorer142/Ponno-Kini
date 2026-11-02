@@ -9,9 +9,13 @@ import {
     ShoppingBag,
     ShoppingCart,
     Sun,
-    User,
     X,
 } from "lucide-react";
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import NotificationBell from "@/components/NotificationBell";
@@ -229,7 +233,20 @@ export default function Navbar({ theme, onToggleTheme }) {
                                         setAccountMenuOpen((open) => !open)
                                     }
                                 >
-                                    <User />
+                                    <Avatar className="size-7">
+                                        <AvatarImage
+                                            src={user?.avatar ?? undefined}
+                                            alt={user?.name ?? t("Profile")}
+                                        />
+                                        <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
+                                            {user?.name
+                                                ?.split(/\s+/)
+                                                .filter(Boolean)
+                                                .slice(0, 2)
+                                                .map((part) => part[0]?.toUpperCase())
+                                                .join("") || "U"}
+                                        </AvatarFallback>
+                                    </Avatar>
                                     <span className="break-all">
                                         {user?.name ?? t("Profile")}
                                     </span>
@@ -395,7 +412,20 @@ export default function Navbar({ theme, onToggleTheme }) {
                                             setAccountMenuOpen((open) => !open)
                                         }
                                     >
-                                        <User aria-hidden="true" />
+                                        <Avatar className="size-7">
+                                            <AvatarImage
+                                                src={user?.avatar ?? undefined}
+                                                alt={user?.name ?? t("Profile")}
+                                            />
+                                            <AvatarFallback className="bg-secondary text-xs font-semibold text-secondary-foreground">
+                                                {user?.name
+                                                    ?.split(/\s+/)
+                                                    .filter(Boolean)
+                                                    .slice(0, 2)
+                                                    .map((part) => part[0]?.toUpperCase())
+                                                    .join("") || "U"}
+                                            </AvatarFallback>
+                                        </Avatar>
                                         <span className="break-all">
                                             {user?.name ?? "Profile"}
                                         </span>

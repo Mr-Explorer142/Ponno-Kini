@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Search, ShieldCheck, UserRound, X } from "lucide-react";
+import { Plus, Search, ShieldCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from "@/components/ui/avatar";
 import api from "@/api/axios";
 import {
     EmptyState,
@@ -369,10 +374,21 @@ export default function AdminUsers() {
                                         <tr key={user.id}>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="grid size-9 place-items-center rounded-full bg-muted">
-                                                        <UserRound className="size-4 text-muted-foreground" />
-                                                    </span>
-                                                    <span>
+                                                    <Avatar className="size-9">
+                                                        <AvatarImage
+                                                            src={user.avatar ?? undefined}
+                                                            alt={user.name}
+                                                        />
+                                                        <AvatarFallback className="bg-muted text-xs font-semibold text-muted-foreground">
+                                                            {user.name
+                                                                ?.split(/\s+/)
+                                                                .filter(Boolean)
+                                                                .slice(0, 2)
+                                                                .map((part) => part[0]?.toUpperCase())
+                                                                .join("") || "U"}
+                                                        </AvatarFallback>
+                                                    </Avatar>
+                                                    <span className="min-w-0">
                                                         <span className="block font-medium">{user.name}</span>
                                                         <span className="block text-xs text-muted-foreground">{user.email}</span>
                                                     </span>

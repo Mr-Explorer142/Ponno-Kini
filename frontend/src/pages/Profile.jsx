@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
     CalendarDays,
+    Camera,
     KeyRound,
     LoaderCircle,
     LogOut,
@@ -108,6 +109,9 @@ export default function Profile() {
     const [passwordCodePending, setPasswordCodePending] = useState(false);
     const [saving, setSaving] = useState(false);
     const [accountNotice, setAccountNotice] = useState(null);
+    const [avatarUploading, setAvatarUploading] = useState(false);
+    const [avatarNotice, setAvatarNotice] = useState(null);
+    const avatarInputRef = useRef(null);
 
     // Refresh from /me so the profile is never stale
     useEffect(() => {
@@ -117,6 +121,55 @@ export default function Profile() {
     const handleLogout = async () => {
         await logout();
         navigate("/login");
+    };
+
+    const handleAvatarChange = async (event) => {
+        const file = event.target.files?.[0];
+        event.target.value = "";
+
+        if (!file) return;
+
+        if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+            setAvatarNotice({
+                type: "error",
+                text: "Choose a JPG, PNG, or WebP image.",
+            });
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            setAvatarNotice({
+                type: "error",
+                text: "Profile photos must be 5 MB or smaller.",
+            });
+            return;
+        }
+
+        setAvatarUploading(true);
+        setAvatarNotice(null);
+        const formData = new FormData();
+        formData.append("avatar", file);
+
+        try {
+            const response = await api.post("/profile/avatar", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            useAuthStore.setState({ user: response.data.user });
+            setAvatarNotice({
+                type: "success",
+                text: "Your profile photo has been updated.",
+            });
+        } catch (error) {
+            setAvatarNotice({
+                type: "error",
+                text: getErrorMessage(
+                    error,
+                    "Your profile photo could not be uploaded.",
+                ),
+            });
+        } finally {
+            setAvatarUploading(false);
+        }
     };
 
     const handleResendVerification = async () => {
@@ -327,12 +380,42 @@ export default function Profile() {
         <Card className="mx-auto mt-5 w-full max-w-2xl border-border sm:mt-10">
             <CardHeader>
                 <div className="flex min-w-0 items-center gap-3 sm:gap-4">
-                    <Avatar className="size-16 border-2 border-border sm:size-20">
-                        <AvatarImage src={user.avatar} alt={user.name} />
-                        <AvatarFallback className="bg-secondary text-xl font-semibold text-secondary-foreground">
-                            {getInitials(user.name)}
-                        </AvatarFallback>
-                    </Avatar>
+                    <div className="flex shrink-0 flex-col items-center gap-2">
+                        <Avatar className="size-16 border-2 border-border sm:size-20">
+                            <AvatarImage src={user.avatar} alt={user.name} />
+                            <AvatarFallback className="bg-secondary text-xl font-semibold text-secondary-foreground">
+                                {getInitials(user.name)}
+                            </AvatarFallback>
+                        </Avatar>
+                        <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            className="sr-only"
+                            aria-label={t("Choose a profile photo")}
+                            onChange={handleAvatarChange}
+                        />
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={avatarUploading}
+                            onClick={() => avatarInputRef.current?.click()}
+                        >
+                            {avatarUploading ? (
+                                <LoaderCircle className="animate-spin" aria-hidden="true" />
+                            ) : (
+                                <Camera aria-hidden="true" />
+                            )}
+                            {t(
+                                avatarUploading
+                                    ? "Uploading..."
+                                    : user.avatar
+                                      ? "Change photo"
+                                      : "Upload photo",
+                            )}
+                        </Button>
+                    </div>
 
                     <div className="min-w-0 space-y-1">
                         <CardTitle className="wrap-break-word text-xl sm:text-2xl">
@@ -361,6 +444,19 @@ export default function Profile() {
                     </div>
                 </div>
             </CardHeader>
+
+            {avatarNotice && (
+                <p
+                    role={avatarNotice.type === "error" ? "alert" : "status"}
+                    className={`mx-6 mb-2 rounded-md px-3 py-2 text-sm ${
+                        avatarNotice.type === "success"
+                            ? "bg-green-500/10 text-green-700 dark:text-green-300"
+                            : "bg-destructive/10 text-destructive"
+                    }`}
+                >
+                    {t(avatarNotice.text)}
+                </p>
+            )}
 
             <CardContent className="divide-y divide-border">
                 <div className="flex flex-col gap-2 border-b border-border py-4 sm:flex-row sm:items-center sm:justify-between">

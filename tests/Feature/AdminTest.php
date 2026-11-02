@@ -21,6 +21,22 @@ it('denies admin workspace data to a customer', function () {
     $this->getJson('/api/admin/products')->assertForbidden();
 });
 
+it('includes profile photos in the admin user list', function () {
+    $admin = User::factory()->create()->assignRole('admin');
+    $customer = User::factory()->create([
+        'name' => 'Customer With Photo',
+        'avatar' => 'https://example.com/customer.png',
+    ])->assignRole('customer');
+    Sanctum::actingAs($admin);
+
+    $this->getJson('/api/admin/users')
+        ->assertOk()
+        ->assertJsonFragment([
+            'id' => $customer->id,
+            'avatar' => $customer->avatar,
+        ]);
+});
+
 it('allows admins to create users with a role and an initial password', function () {
     Notification::fake();
     $admin = User::factory()->create()->assignRole('admin');

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\EmailVerificationCodeNotification;
 use App\Services\EmailVerificationCodeService;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -29,6 +30,19 @@ class ProfileController extends Controller
         $request->user()->update($validated);
 
         return response()->json(['user' => $request->user()->fresh()->load('roles')]);
+    }
+
+    public function updateAvatar(Request $request, ImageService $images)
+    {
+        $validated = $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+        ]);
+
+        $avatarId = $images->upload($validated['avatar'], 'users/avatars');
+        $user = $request->user();
+        $user->forceFill(['avatar' => ImageService::url($avatarId)])->save();
+
+        return response()->json(['user' => $user->fresh()->load('roles')]);
     }
 
     public function requestEmailChange(Request $request)

@@ -1,270 +1,132 @@
-# E-Commerce REST API with AI
+# Ponno Kini
 
-An AI featured e-commerce REST API built with Laravel. It combines token authentication and role-based access, a
-cached product catalogue with Cloudinary image storage, an order and payment flow, verified-purchase reviews, PDF
-invoices, and AI tools powered by Google Gemini. The core business rules are covered by automated Pest tests.
+Ponno Kini is a full-stack e-commerce application with a Laravel REST API and a React storefront. It supports the complete shopping flow—from browsing and account verification through checkout, payment, order management, and post-purchase support—with separate tools for store administrators.
 
-<!-- TODO: add the published Postman docs link and the live API URL here -->
+**Live application:** `Add deployed application URL here`
 
-## Key Features
+## Backend and API
 
-- **Authentication & security**
-    - Registration, login and logout with Laravel Sanctum bearer tokens
-    - Email verification for customers (the seeded admin is pre-verified)
-    - Role-based access control (`admin` / `customer`) with Spatie Laravel Permission
-    - Rate limiting on auth and general API routes
-- **Product & category management**
-    - Admin-only CRUD with search, category/price filters, sorting and pagination
-    - Image uploads to Cloudinary; images are replaced or deleted together with the product
-    - Cached product listings with version-based cache invalidation (works with the file, database or Redis cache
-      drivers)
-- **Orders & payments**
-    - Persistent shopping cart and checkout with reusable Bangladesh customer addresses
-    - Order totals are calculated from database prices, with ৳70 Dhaka and ৳120 outside-Dhaka delivery
-    - SSLCommerz payment checkout, payment confirmation, processing order status, and background notifications
-    - Downloadable order invoices
-- **Reviews & Q&A**
-    - Verified-purchase-only product reviews
-    - Customer/admin Q&A threads
-- **AI-powered tools (Google Gemini)**
-    - **Description generator:** admins can draft SEO-friendly product descriptions in a chosen tone
-    - **Smart cart recommendations:** Gemini picks cross-sell items from real catalogue products in structured JSON
-      mode, with a same-category fallback so the endpoint never returns an empty result because of an AI failure
-- **PDF invoices**
-    - Downloadable HTML/CSS-based invoices generated with DomPDF (amounts shown in BDT)
-- **Scheduled maintenance**
-    - A scheduled task cancels orders that stay unpaid for 7 days
-- **Automated testing**
-    - Pest feature tests running on an in-memory SQLite database
+### Features
 
-## Tech Stack
+- **Authentication and account security:** Laravel Sanctum token authentication, uploadable profile photos, email verification codes, password reset, Google/GitHub social login, role-based access (`admin` and `customer`), and rate-limited API routes.
+- **Product catalog:** Searchable, filterable, paginated products and categories; admin catalog management; Cloudinary image storage; and cached product listings with cache invalidation.
+- **Shopping and orders:** Server-calculated order totals, stock checks, Bangladesh delivery pricing, order history, status management, and downloadable PDF invoices.
+- **Payments:** SSLCommerz checkout, payment result callbacks, and an IPN webhook.
+- **Customer engagement:** Verified-purchase product reviews displayed in a homepage carousel with reviewer profile photos, product questions and admin answers, and in-app notifications.
+- **AI features:** Google Gemini-assisted product descriptions for admins, plus product and cart recommendations.
+- **Admin API:** Store summary and sales analytics, product/category/order/user management, payment tracking, and customer question management.
 
-| Area         | Technology                                 |
-|--------------|--------------------------------------------|
-| Framework    | Laravel 12 (PHP 8.2+)                      |
-| Auth & roles | Laravel Sanctum, Spatie Laravel Permission |
-| Database     | MySQL (SQLite in-memory for tests)         |
-| Cache        | Laravel cache (file / database / Redis)    |
-| Images       | Cloudinary (official PHP SDK)              |
-| AI           | Google Gemini API                          |
-| PDF          | DomPDF (`barryvdh/laravel-dompdf`)         |
-| Email        | Mailtrap sandbox in development            |
-| Payments     | SSLCommerz                                 |
-| Testing      | Pest                                       |
+### Technology stack
 
-## Installation & Setup
+| Layer | Technologies |
+|---|---|
+| Backend | PHP 8.4+, Laravel 13 |
+| Authentication and authorization | Laravel Sanctum, Laravel Socialite (`laravel/socialite`) for Google/GitHub OAuth, Spatie Laravel Permission |
+| Database and caching | SQLite by default, MySQL compatible, Laravel Cache (Redis supported) |
+| Product image storage | Cloudinary |
+| AI | Google Gemini |
+| Payments and invoices | SSLCommerz, DomPDF |
+| Backend testing | Pest, PHPUnit |
+| Frontend | React 19, React Router 7, Vite 8 |
+| Frontend styling and UI | Shadcn UI, Tailwind CSS 4, Base UI |
+| Frontend state and API | Zustand, Axios |
+| Frontend charts and icons | ApexCharts, Lucide React, React Icons |
+| Frontend linting | ESLint |
+
+### API overview
+
+The API base path is `/api`. The endpoints below are relative to that path. Public auth endpoints use the strict auth rate limiter; public browsing and authenticated endpoints use the general API limiter. Customer order, payment, review, and question routes require a verified account. Admin routes additionally require the `admin` role.
+
+| Area | Method and endpoint | Access |
+|---|---|---|
+| Authentication | `POST /register`, `POST /login`, `POST /forgot-password`, `POST /reset-password` | Public |
+| Catalog | `GET /products`, `GET /product/{product}`, `GET /categories`, `GET /categories/{category}`, `GET /reviews` | Public |
+| Social login | `GET /auth/{provider}/redirect`, `GET /auth/{provider}/callback` (`provider`: `google` or `github`) | Public |
+| Recommendations | `POST /cart/recommendations`, `POST /products/{product}/recommendations` | Public |
+| Payment callbacks | `POST /payment/success`, `POST /payment/fail`, `POST /payment/cancel`, `POST /payment/ipn` | Payment gateway |
+| Email verification | `GET /email/verification-status`, `POST /email/verify-code`, `POST /email/verification-notification` | Authenticated |
+| Session and notifications | `GET /me`, `POST /logout`, `GET /notifications`, `PATCH /notifications/{notification}/read`, `POST /notifications/read-all` | Authenticated |
+| Profile | `PATCH /profile`, `POST /profile/email/request`, `POST /profile/email/verify`, `POST /profile/email/resend`, `POST /profile/password/request`, `POST /profile/password/verify`, `POST /profile/password/resend` | Authenticated |
+| Profile photo | `POST /profile/avatar` (multipart image upload; JPG, PNG, or WebP, max 5 MB) | Authenticated |
+| Customer orders and payments | `GET /orders`, `POST /orders`, `GET /orders/{order}`, `GET /orders/{order}/invoice`, `POST /orders/{order}/pay` | Verified |
+| Customer engagement | `POST /products/{product}/reviews`, `POST /products/{product}/questions` | Verified |
+| Admin dashboard | `GET /admin/dashboard` | Admin |
+| Admin analytics | `GET /admin/stats/summary`, `GET /admin/stats/sales`, `GET /admin/stats/orders-by-status`, `GET /admin/stats/payment-methods`, `GET /admin/stats/payment-status`, `GET /admin/stats/top-products`, `GET /admin/stats/sales-by-category`, `GET /admin/stats/sales-by-city`, `GET /admin/stats/new-customers`, `GET /admin/stats/ratings`, `GET /admin/stats/orders-heatmap` | Admin |
+| Admin catalog | `GET /admin/products`, `POST /products`, `POST /products/{product}`, `DELETE /products/{product}`, `GET /admin/categories`, `POST /categories`, `PUT /categories/{category}`, `DELETE /categories/{category}` | Admin |
+| Admin orders and payments | `GET /admin/orders`, `GET /admin/orders/{order}`, `GET /admin/order-options`, `POST /admin/orders`, `PUT /admin/orders/{order}`, `PATCH /orders/{order}/status` | Admin |
+| Admin customers and questions | `GET /admin/questions`, `PATCH /questions/{question}/answer`, `GET /admin/users`, `POST /admin/users`, `POST /admin/users/{user}/verify-email` | Admin |
+| Admin AI tools | `POST /ai/generate-description`, `POST /ai/generate-image` | Admin |
+
+`POST /ai/generate-image` is registered by the API but is not used by the storefront or admin product workflow; product image generation is not presented as an application feature. Run `php artisan route:list --path=api` for route names and middleware details.
+
+## Run locally
 
 ### Requirements
 
-- PHP 8.2+ and Composer
-- MySQL
-- A [Cloudinary](https://cloudinary.com) account
-- A [Google AI Studio](https://aistudio.google.com) API key
-- A [Mailtrap](https://mailtrap.io) account (for local email testing)
+PHP 8.4+, Composer, Node.js, and npm. The example environment is configured for SQLite; set database values in `.env` to use MySQL instead. External integrations (email, Cloudinary, Gemini, and SSLCommerz) need credentials to use those services.
 
-### 1. Clone the repository and install dependencies
+### Backend
 
 ```bash
-git clone https://github.com/yourusername/ecommerce-api.git
-cd ecommerce-api
 composer install
-```
-
-### 2. Configure the environment
-
-```bash
-cp .env.example .env      # on Windows: copy .env.example .env
+copy .env.example .env
 php artisan key:generate
-```
-
-Create an empty MySQL database, then update `.env`:
-
-```env
-APP_URL=http://127.0.0.1:8000
-
-DB_CONNECTION=mysql
-DB_DATABASE=ecommerce
-DB_USERNAME=root
-DB_PASSWORD=
-
-# Any Laravel cache driver works (file, database, redis)
-CACHE_STORE=database
-
-# Cloudinary (dashboard > API keys)
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Google Gemini
-GEMINI_API_KEY=your_google_ai_key
-GEMINI_MODEL=gemini-3.8-flash
-
-# Mailtrap sandbox (development only)
-MAIL_MAILER=smtp
-MAIL_HOST=sandbox.smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_USERNAME=your_mailtrap_username
-MAIL_PASSWORD=your_mailtrap_password
-
-# SSLCommerz sandbox credentials
-SSLCOMMERZ_STORE_ID=your_store_id
-SSLCOMMERZ_STORE_PASSWORD=your_store_password
-SSLCOMMERZ_IS_SANDBOX=true
-FRONTEND_URL=http://localhost:5173
-```
-
-Never commit your `.env` file or any API secret.
-
-### 3. Run migrations and seeders
-
-```bash
 php artisan migrate --seed
-```
-
-The seeder creates the `admin` and `customer` roles and an admin user (`admin@example.com`) with a verified email.
-Change the default admin password before deploying anywhere public.
-
-### 4. Start the application
-
-```bash
 php artisan serve
-
-# Only needed if QUEUE_CONNECTION is not "sync":
-php artisan queue:work
 ```
 
-The API is now available at `http://127.0.0.1:8000/api`.
+Set `FRONTEND_URL` and any integration credentials in `.env`. For queued jobs, run `php artisan queue:work` in a separate terminal.
 
-## API Overview
+### Frontend
 
-Base URL: `http://127.0.0.1:8000/api`
-
-All requests should send `Accept: application/json`. Protected routes need `Authorization: Bearer <token>`, which is
-returned by the register and login endpoints.
-
-**Access levels:**
-
-- **Public:** Needs no token.
-- **Auth:** Needs a valid token.
-- **Verified:** Needs a token and a verified email.
-- **Admin:** Needs a verified email and the `admin` role.
-
-### Authentication
-
-| Method | Endpoint                            | Access | Description                                            |
-|--------|-------------------------------------|--------|--------------------------------------------------------|
-| POST   | `/register`                         | Public | Register and email a 6-character verification code    |
-| POST   | `/login`                            | Public | Log in and receive a token                             |
-| GET    | `/email/verification-status`        | Auth   | Get verification state and resend cooldown            |
-| POST   | `/email/verify-code`                | Auth   | Verify with a code (10-minute expiry, 5-attempt lock) |
-| POST   | `/email/verification-notification`  | Auth   | Resend the code (60-second cooldown)                  |
-| POST   | `/forgot-password`                  | Public | Request a password reset                               |
-| POST   | `/reset-password`                   | Public | Reset the password                                     |
-| GET    | `/me`                               | Auth   | Current user                                           |
-| POST   | `/logout`                           | Auth   | Revoke the current token                               |
-
-After registration, the frontend opens `/verify-email`. The verification code
-is stored as a hash; a successful verification marks the account verified and
-clears the stored code.
-
-### Catalog & recommendations
-
-| Method | Endpoint                | Access | Description                                                                                                                   |
-|--------|-------------------------|--------|-------------------------------------------------------------------------------------------------------------------------------|
-| GET    | `/products`             | Public | List products. Query: `search`, `category_id`, `min_price`, `max_price`, `sort` (`price_asc`, `price_desc`, `oldest`), `page` |
-| GET    | `/product/{id}`         | Public | Show a product                                                                                                                |
-| GET    | `/categories`           | Public | List categories                                                                                                               |
-| GET    | `/categories/{id}`      | Public | Show a category                                                                                                               |
-| POST   | `/cart/recommendations` | Public | AI cross-sell suggestions. Body: `product_ids` (array of cart product IDs)                                                    |
-
-### Orders & payments
-
-| Method | Endpoint               | Access   | Description                                         |
-|--------|------------------------|----------|-----------------------------------------------------|
-| GET    | `/orders`              | Verified | List your orders                                    |
-| POST   | `/orders`              | Verified | Create an order (the total is computed server-side) |
-| GET    | `/orders/{id}`         | Verified | Show an order                                       |
-| GET    | `/orders/{id}/invoice` | Verified | Download the PDF invoice                            |
-| POST   | `/orders/{id}/pay`     | Verified | Start an SSLCommerz payment                         |
-
-### Reviews & Q&A
-
-| Method | Endpoint                   | Access   | Description                    |
-|--------|----------------------------|----------|--------------------------------|
-| POST   | `/products/{id}/reviews`   | Verified | Review a product you purchased |
-| POST   | `/products/{id}/questions` | Verified | Ask a question about a product |
-| PATCH  | `/questions/{id}/answer`   | Admin    | Answer a customer question     |
-
-### Admin
-
-| Method | Endpoint                   | Access | Description                                                                                                                                |
-|--------|----------------------------|--------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| POST   | `/products`                | Admin  | Create a product (multipart, optional `image`)                                                                                             |
-| POST   | `/products/{id}`           | Admin  | Update a product (multipart, optional `image`)                                                                                             |
-| DELETE | `/products/{id}`           | Admin  | Delete a product                                                                                                                           |
-| POST   | `/categories`              | Admin  | Create a category                                                                                                                          |
-| PUT    | `/categories/{id}`         | Admin  | Update a category                                                                                                                          |
-| DELETE | `/categories/{id}`         | Admin  | Delete a category                                                                                                                          |
-| PATCH  | `/orders/{id}/status`      | Admin  | Update an order's status                                                                                                                   |
-| POST   | `/ai/generate-description` | Admin  | Generate a product description. Body: `product_name`, optional `features`, optional `tone` (`professional`, `playful`, `luxury`, `urgent`) |
-
-### Payment gateway callbacks
-
-SSLCommerz calls these endpoints itself; clients should not use them.
-
-| Method | Endpoint           | Description                            |
-|--------|--------------------|----------------------------------------|
-| POST   | `/payment/success` | Payment succeeded                      |
-| POST   | `/payment/fail`    | Payment failed                         |
-| POST   | `/payment/cancel`  | Payment cancelled                      |
-| POST   | `/payment/ipn`     | Instant payment notification (webhook) |
-
-### Notes
-
-- **Prices** are stored as whole BDT amounts (integers).
-- **Product updates use `POST`, not `PUT`.** PHP does not parse multipart form data on `PUT`, so sending an image with
-  an update only works over `POST`.
-- **Rate limits:** authentication endpoints use a stricter limiter (`auth-strict`) than the rest of the API
-  (`api-general`).
-- Run `php artisan route:list --path=api` to see every route with its middleware.
-
-## Testing
-
-Tests run against an in-memory SQLite database, so your development data is never touched.
+The React storefront and admin dashboard connect to the Laravel REST API. The API client uses `http://localhost:8000/api` by default.
 
 ```bash
-php artisan test
+cd frontend
+npm install
+npm run dev
 ```
 
-The suite covers registration and login, product permissions (public listing, admin-only creation, customers blocked),
-server-side order pricing, and the verified-purchase review rule.
+#### Frontend features
 
-## Scheduled Tasks
+- **Storefront:** Responsive home page with featured products and categories; searchable catalog with category, price, sorting, and pagination controls.
+- **Product details:** Product information, recommendations, reviews, and customer questions.
+- **Cart and checkout:** Persistent cart, quantity and selection controls, stock checks, delivery calculation, and order checkout.
+- **Customer account:** Registration, login, Google/GitHub social login, email verification, password recovery, profile photo upload, profile and security settings, order history, payment results, and invoice downloads.
+- **Customer reviews:** Review cards include the reviewer's profile photo and appear in a navigable homepage carousel.
+- **Admin workspace:** Sales dashboard and charts, product and category management, order and payment tracking, user management, notifications, and customer Q&A. Admin product tools include Gemini-assisted descriptions.
+- **Preferences:** English/Bengali language selection and light/dark themes.
 
-To run the abandoned-order cleanup locally:
+Build the frontend with `npm run build` or run its lint checks with `npm run lint` from the `frontend` directory.
 
-```bash
-php artisan schedule:work
-```
+#### Frontend screenshots
 
-## Design Decisions
+Replace each placeholder with a screenshot of that page. Use representative data and avoid including real customer information.
 
-- **Server-side pricing:** order totals are calculated from database prices, and a test confirms that tampered client
-  prices are ignored.
-- **Safe image handling:** on update, the new image is uploaded first and the old one is deleted only after the database
-  update succeeds.
-- **Driver-agnostic cache invalidation:** product lists are cached under a version number, and any create, update or
-  delete bumps the version instead of scanning cache keys.
-- **AI that never blocks the shop:** recommendation failures fall back to same-category products, and AI error details
-  are shown only when `APP_DEBUG=true`.
+**Storefront**
 
-## Deployment Notes for the Testers/Users
+![alt text](image.png)
+![alt text](image-3.png)
+![alt text](image-1.png)
+![alt text](image-4.png)
 
-When deploying (for example to Laravel Cloud):
+**Account and orders**
 
-- Use a managed database and run `php artisan migrate --force` as a deploy command.
-- Set `APP_ENV=production`, `APP_DEBUG=false`, and `CACHE_STORE=database` (or Redis) and `SESSION_DRIVER=database`,
-  because the server filesystem does not persist between deploys.
-- Store all secrets (Cloudinary, Gemini, mail, payment) in the host's environment settings.
-- Use a real transactional email provider instead of the Mailtrap sandbox, which does not deliver to real inboxes.
-- Seed the admin user once, with a strong password.
+![alt text](image-6.png)
+![alt text](image-7.png)
+![alt text](image-5.png)
+![alt text](image-2.png)
+
+**Admin (Dark Mode View)**
+
+![alt text](image-8.png)
+![alt text](image-9.png)
+![alt text](image-10.png)
+![alt text](image-11.png)
+![alt text](image-12.png)
+![alt text](image-14.png)
+![alt text](image-13.png)
+![alt text](image-15.png)
+![alt text](image-16.png)
+
+Run the backend test suite with `php artisan test`. Start `php artisan schedule:work` locally to run scheduled maintenance tasks.

@@ -58,7 +58,10 @@ it('allows a user to review a product they successfully purchased', function () 
 });
 
 it('shows recent written reviews with their product on the public homepage feed', function () {
-    $customer = User::factory()->create(['name' => 'Happy Customer']);
+    $customer = User::factory()->create([
+        'name' => 'Happy Customer',
+        'avatar' => 'https://example.com/happy-customer.png',
+    ]);
     $category = Category::factory()->create();
     $product = Product::factory()->create(['category_id' => $category->id]);
 
@@ -73,6 +76,7 @@ it('shows recent written reviews with their product on the public homepage feed'
 
     expect($response->status())->toBe(200)
         ->and($response->json('data.0.user'))->toBe('Happy Customer')
+        ->and($response->json('data.0.user_avatar'))->toBe('https://example.com/happy-customer.png')
         ->and($response->json('data.0.product.name'))->toBe($product->name)
         ->and($response->json('data.0.comment'))->toBe('Wonderful quality.');
 });

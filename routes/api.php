@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum', 'throttle:api-general'])->group(function () {
 
     // Profile management
     Route::patch('/profile', [ProfileController::class, 'update']);
+    Route::post('/profile/avatar', [ProfileController::class, 'updateAvatar']);
     Route::post('/profile/email/request', [ProfileController::class, 'requestEmailChange']);
     Route::post('/profile/email/verify', [ProfileController::class, 'verifyEmailChange']);
     Route::post('/profile/email/resend', [ProfileController::class, 'resendEmailChangeCode']);

@@ -18,6 +18,11 @@ import {
     Watch,
 } from "lucide-react";
 import api from "@/api/axios";
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import ProductCard from "@/components/ProductCard";
 import { t } from "@/i18n";
@@ -166,6 +171,7 @@ export default function Home() {
     const [bestSellers, setBestSellers] = useState([]);
     const [newDrops, setNewDrops] = useState([]);
     const [reviews, setReviews] = useState([]);
+    const [activeReviewIndex, setActiveReviewIndex] = useState(0);
     const [activeHeroSlide, setActiveHeroSlide] = useState(0);
     const [heroPaused, setHeroPaused] = useState(false);
     const [loading, setLoading] = useState({
@@ -638,43 +644,134 @@ export default function Home() {
                         {errors.reviews}
                     </p>
                 ) : reviews.length ? (
-                    <div className="grid gap-4 md:grid-cols-3">
-                        {reviews.slice(0, 3).map((review) => (
-                            <article
-                                key={review.id}
-                                className="flex h-full flex-col rounded-2xl border border-border bg-card p-5 sm:p-6"
-                            >
+                    <div
+                        role="region"
+                        aria-label={t("Customer reviews")}
+                        className="mx-auto max-w-4xl"
+                        aria-roledescription={t("carousel")}
+                    >
+                        <article
+                            key={activeReview.id}
+                            className="rounded-3xl border border-border bg-card p-6 shadow-sm sm:p-9"
+                            role="group"
+                            aria-roledescription={t("slide")}
+                            aria-label={t(":current of :total", {
+                                current: activeReviewIndex + 1,
+                                total: reviews.length,
+                            })}
+                        >
+                            <div className="flex flex-wrap items-center justify-between gap-4">
                                 <div
                                     className="flex gap-1 text-amber-400"
                                     aria-label={t("out of :count stars", {
-                                        count: review.rating,
+                                        count: activeReview.rating,
                                     })}
                                 >
                                     {Array.from({ length: 5 }, (_, index) => (
                                         <Star
                                             key={index}
-                                            className={`size-4 ${index < review.rating ? "fill-current" : "text-secondary"}`}
+                                            className={`size-4 ${index < activeReview.rating ? "fill-current" : "text-secondary"}`}
                                             aria-hidden="true"
                                         />
                                     ))}
                                 </div>
-                                <p className="mt-4 flex-1 text-sm leading-relaxed text-foreground">
-                                    {review.comment}
-                                </p>
-                                <div className="mt-5 border-t border-border pt-4">
+                                <span className="text-sm text-muted-foreground">
+                                    {activeReview.product?.name
+                                        ? t("Reviewed :product", {
+                                              product: activeReview.product.name,
+                                          })
+                                        : activeReview.created_at}
+                                </span>
+                            </div>
+                            <blockquote className="mt-6 text-lg leading-relaxed text-foreground sm:text-2xl">
+                                “{activeReview.comment}”
+                            </blockquote>
+                            <div className="mt-8 flex items-center gap-3 border-t border-border pt-6">
+                                <Avatar className="size-12 ring-2 ring-background">
+                                    <AvatarImage
+                                        src={activeReview.user_avatar ?? undefined}
+                                        alt={reviewerName}
+                                    />
+                                    <AvatarFallback className="bg-secondary font-semibold text-secondary-foreground">
+                                        {reviewerName
+                                            .split(/\s+/)
+                                            .filter(Boolean)
+                                            .slice(0, 2)
+                                            .map((part) => part[0]?.toUpperCase())
+                                            .join("")}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
                                     <p className="font-semibold text-foreground">
-                                        {review.user}
+                                        {reviewerName}
                                     </p>
-                                    <p className="mt-1 text-xs text-muted-foreground">
-                                        {review.product?.name
-                                            ? t("Reviewed :product", {
-                                                  product: review.product.name,
-                                              })
-                                            : review.created_at}
+                                    <p className="text-sm text-muted-foreground">
+                                        {t("Verified customer review")}
                                     </p>
                                 </div>
-                            </article>
-                        ))}
+                            </div>
+                        </article>
+
+                        <div className="mt-5 flex items-center justify-center gap-3">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                aria-label={t("Previous review")}
+                                disabled={reviews.length < 2}
+                                onClick={() =>
+                                    setActiveReviewIndex(
+                                        (current) =>
+                                            (current - 1 + reviews.length) %
+                                            reviews.length,
+                                    )
+                                }
+                            >
+                                <ChevronLeft
+                                    className="cursor-pointer"
+                                    aria-hidden="true"
+                                />
+                            </Button>
+                            <div className="flex items-center gap-2">
+                                {reviews.map((review, index) => (
+                                    <button
+                                        key={review.id}
+                                        type="button"
+                                        aria-label={t("Show review :number", {
+                                            number: index + 1,
+                                        })}
+                                        aria-current={
+                                            index === activeReviewIndex
+                                                ? "true"
+                                                : undefined
+                                        }
+                                        onClick={() => setActiveReviewIndex(index)}
+                                        className={`size-2.5 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                                            index === activeReviewIndex
+                                                ? "bg-primary"
+                                                : "bg-border hover:bg-muted-foreground"
+                                        }`}
+                                    />
+                                ))}
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                aria-label={t("Next review")}
+                                disabled={reviews.length < 2}
+                                onClick={() =>
+                                    setActiveReviewIndex(
+                                        (current) => (current + 1) % reviews.length,
+                                    )
+                                }
+                            >
+                                <ChevronRight
+                                    className="cursor-pointer"
+                                    aria-hidden="true"
+                                />
+                            </Button>
+                        </div>
                     </div>
                 ) : (
                     <div className="rounded-2xl border border-border bg-card p-6 text-center">

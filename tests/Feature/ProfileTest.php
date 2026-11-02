@@ -1,9 +1,44 @@
 <?php
 
 use App\Models\User;
+use App\Services\ImageService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
+
+it('allows an authenticated user to upload a profile photo', function () {
+    config(['services.cloudinary.cloud_name' => 'test-cloud']);
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $images = Mockery::mock(ImageService::class);
+    $images->shouldReceive('upload')
+        ->once()
+        ->with(Mockery::type(UploadedFile::class), 'users/avatars')
+        ->andReturn('users/avatars/profile-photo');
+    app()->instance(ImageService::class, $images);
+
+    $this->postJson('/api/profile/avatar', [
+        'avatar' => UploadedFile::fake()->image('profile.png'),
+    ])->assertOk()
+        ->assertJsonPath(
+            'user.avatar',
+            'https://res.cloudinary.com/test-cloud/image/upload/f_auto,q_auto/users/avatars/profile-photo'
+        );
+
+    expect($user->fresh()->avatar)
+        ->toBe('https://res.cloudinary.com/test-cloud/image/upload/f_auto,q_auto/users/avatars/profile-photo');
+});
+
+it('validates uploaded profile photos', function () {
+    Sanctum::actingAs(User::factory()->create());
+
+    $this->postJson('/api/profile/avatar', [
+        'avatar' => UploadedFile::fake()->create('profile.pdf', 100, 'application/pdf'),
+    ])->assertUnprocessable()
+        ->assertJsonValidationErrors('avatar');
+});
 
 it('updates the authenticated user name', function () {
     $user = User::factory()->create();
