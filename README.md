@@ -105,28 +105,30 @@ Replace each placeholder with a screenshot of that page. Use representative data
 
 **Storefront**
 
-![alt text](image.png)
-![alt text](image-3.png)
-![alt text](image-1.png)
-![alt text](image-4.png)
+<img width="1905" height="912" alt="Screenshot 2026-11-02 102913" src="https://github.com/user-attachments/assets/c8887f6c-c286-47f3-9b8e-5b500532ebf9" />
+<img width="1465" height="921" alt="Screenshot 2026-11-02 100637" src="https://github.com/user-attachments/assets/d0cf45f0-9c0d-47ef-bfca-f7e8f4cfa8e2" />
+<img width="1900" height="901" alt="Screenshot 2026-11-02 100845" src="https://github.com/user-attachments/assets/f5972cb7-5f65-4458-8eb4-6eb5fe9a41eb" />
+<img width="1193" height="917" alt="Screenshot 2026-11-02 101043" src="https://github.com/user-attachments/assets/eb9086a6-c1d7-4034-bd09-d75860a48fe3" />
+
 
 **Account and orders**
 
-![alt text](image-6.png)
-![alt text](image-7.png)
-![alt text](image-5.png)
-![alt text](image-2.png)
+<img width="1907" height="858" alt="Screenshot 2026-11-02 103332" src="https://github.com/user-attachments/assets/d9e9fa67-f181-4865-a149-f4019f1c67b5" />
+<img width="1909" height="898" alt="Screenshot 2026-11-02 103357" src="https://github.com/user-attachments/assets/554ec6e7-e3a2-4133-8172-a00bf54157c5" />
+<img width="1908" height="903" alt="Screenshot 2026-11-02 103052" src="https://github.com/user-attachments/assets/890a7966-9694-4297-9290-a8de3697a453" />
+<img width="1904" height="882" alt="image" src="https://github.com/user-attachments/assets/95e0af35-efeb-472b-9353-05b4c99e376b" />
 
-**Admin (Dark Mode View)**
+**Admin Panel (Dark Mode View)**
 
-![alt text](image-8.png)
-![alt text](image-9.png)
-![alt text](image-10.png)
-![alt text](image-11.png)
-![alt text](image-12.png)
-![alt text](image-14.png)
-![alt text](image-13.png)
-![alt text](image-15.png)
-![alt text](image-16.png)
+<img width="1899" height="913" alt="Screenshot 2026-11-02 103555" src="https://github.com/user-attachments/assets/4d1b57f5-2fd9-450f-b6c4-e4f948696198" />
+<img width="1885" height="913" alt="Screenshot 2026-11-02 103637" src="https://github.com/user-attachments/assets/12d1fdb6-4fab-4327-8c90-d06d639d9f6c" />
+<img width="1903" height="911" alt="Screenshot 2026-11-02 103706" src="https://github.com/user-attachments/assets/6d444139-21d1-43e3-9775-903944634818" />
+<img width="1907" height="908" alt="Screenshot 2026-11-02 103743" src="https://github.com/user-attachments/assets/dc3449ba-0320-4b80-a88c-876f2131a8f8" />
+<img width="1894" height="911" alt="Screenshot 2026-11-02 103757" src="https://github.com/user-attachments/assets/b88f41de-a958-479a-a2e3-9b81eb2657d9" />
+<img width="1913" height="914" alt="Screenshot 2026-11-02 103937" src="https://github.com/user-attachments/assets/ce7d8d55-fd0f-4da8-8203-c327f01248ec" />
+<img width="1910" height="911" alt="Screenshot 2026-11-02 104000" src="https://github.com/user-attachments/assets/82d65b02-5cbf-4dd1-b58e-f5923a4f8eeb" />
+<img width="1906" height="910" alt="Screenshot 2026-11-02 104031" src="https://github.com/user-attachments/assets/794e61f7-3775-43c5-88f6-f3695ff9ddac" />
+<img width="1916" height="914" alt="Screenshot 2026-11-02 104042" src="https://github.com/user-attachments/assets/8d3442a9-5683-4d60-a297-d686ba4ccee2" />
+
 
 Run the backend test suite with `php artisan test`. Start `php artisan schedule:work` locally to run scheduled maintenance tasks.
