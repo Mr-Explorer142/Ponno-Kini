@@ -71,7 +71,7 @@ function loadingStats() {
 function ChartSkeleton() {
     return (
         <div
-            className="h-[270px] w-full animate-pulse rounded-lg bg-muted"
+            className="h-67.5 w-full animate-pulse rounded-lg bg-muted"
             aria-label="Loading chart"
         />
     );

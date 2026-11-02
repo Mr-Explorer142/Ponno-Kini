@@ -554,7 +554,7 @@ export default function ProductDetail() {
                         {Array.from({ length: 4 }, (_, index) => (
                             <div
                                 key={index}
-                                className="aspect-[4/5] animate-pulse rounded-2xl bg-secondary"
+                                className="aspect-4/5 animate-pulse rounded-2xl bg-secondary"
                             />
                         ))}
                     </div>
