@@ -9,6 +9,7 @@
         "php": "^8.4",
         "barryvdh/laravel-dompdf": "^3.1",
         "cloudinary/cloudinary_php": "^2.0 || ^3.0",
+        "fakerphp/faker": "^1.24",
         "laravel/framework": "^13.17",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.31",
@@ -17,7 +18,6 @@
         "spatie/laravel-permission": "^8.3"
     },
     "require-dev": {
-        "fakerphp/faker": "^1.23",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
