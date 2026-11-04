@@ -2,7 +2,7 @@
 
 Ponno Kini is a full-stack e-commerce application with a Laravel REST API and a React storefront. It supports the complete shopping flow—from browsing and account verification through checkout, payment, order management, and post-purchase support—with separate tools for store administrators.
 
-**Live application:** `https://ponno-kini.vercel.app/`
+[Live Application](https://ponno-kini.vercel.app)
 
 ## Backend and API
 
