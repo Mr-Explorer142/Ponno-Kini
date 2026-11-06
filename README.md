@@ -75,7 +75,7 @@ php artisan migrate --seed
 php artisan serve
 ```
 
-Set `FRONTEND_URL` and any integration credentials in `.env`. For queued jobs, run `php artisan queue:work` in a separate terminal.
+Set `FRONTEND_URL` and any integration credentials in `.env`. Configure `MAIL_MAILER`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, and `MAIL_FROM_ADDRESS` to deliver email; the example `MAIL_MAILER=log` writes messages to the application log instead of sending them. For other queued jobs, run `php artisan queue:work` in a separate terminal.
 
 ### Frontend
 

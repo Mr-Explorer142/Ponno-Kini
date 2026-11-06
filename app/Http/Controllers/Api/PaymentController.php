@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Payment;
 use App\Models\User;
+use App\Notifications\OrderStatusChangedNotification;
 use App\Notifications\PaymentSuccessfulNotification;
 use App\Notifications\StorefrontNotification;
 use App\Services\OrderInventoryService;
@@ -249,7 +250,7 @@ class PaymentController extends Controller
             return null;
         }
 
-        return DB::transaction(function () use ($request, $transactionId, $paymentStatus, $orderStatus, $inventory) {
+        [$order, $statusChanged] = DB::transaction(function () use ($request, $transactionId, $paymentStatus, $orderStatus, $inventory) {
             $payment = Payment::query()
                 ->where('transaction_id', $transactionId)
                 ->latest()
@@ -257,7 +258,7 @@ class PaymentController extends Controller
                 ->first();
 
             if (! $payment) {
-                return null;
+                return [null, false];
             }
 
             $order = Order::query()->lockForUpdate()->findOrFail($payment->order_id);
@@ -299,7 +300,20 @@ class PaymentController extends Controller
                 ));
             }
 
-            return $order;
+            return [$order, $statusChanged];
         });
+
+        if ($order && $statusChanged) {
+            try {
+                $order->user?->notify(new OrderStatusChangedNotification($order));
+            } catch (Throwable $e) {
+                Log::error('Order status email failed', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return $order;
     }
 }

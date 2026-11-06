@@ -7,13 +7,16 @@ use App\Http\Resources\OrderResource;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\OrderStatusChangedNotification;
 use App\Notifications\StorefrontNotification;
 use App\Services\OrderInventoryService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Throwable;
 
 class OrderController extends Controller
 {
@@ -153,7 +156,7 @@ class OrderController extends Controller
             'status' => 'required|in:pending,processing,completed,cancelled,failed',
         ]);
 
-        $order = DB::transaction(function () use ($order, $validated, $inventory) {
+        [$order, $statusChanged] = DB::transaction(function () use ($order, $validated, $inventory) {
             $lockedOrder = Order::query()->lockForUpdate()->findOrFail($order->id);
             $statusChanged = $lockedOrder->status !== $validated['status'];
             $lockedOrder->update(['status' => $validated['status']]);
@@ -168,8 +171,19 @@ class OrderController extends Controller
                 ));
             }
 
-            return $lockedOrder;
+            return [$lockedOrder, $statusChanged];
         });
+
+        if ($statusChanged) {
+            try {
+                $order->user?->notify(new OrderStatusChangedNotification($order));
+            } catch (Throwable $e) {
+                Log::error('Order status email failed', [
+                    'order_id' => $order->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json([
             'message' => 'Order status updated successfully!',

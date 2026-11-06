@@ -3,15 +3,11 @@
 namespace App\Notifications;
 
 use App\Models\Order;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PaymentSuccessfulNotification extends Notification implements ShouldQueue
+class PaymentSuccessfulNotification extends Notification
 {
-    use Queueable;
-
     protected Order $order;
 
     /**
@@ -41,7 +37,8 @@ class PaymentSuccessfulNotification extends Notification implements ShouldQueue
             ->subject("Payment Received - Order #" . $this->order->order_number)
             ->greeting('Hello ' . $notifiable->name . ',')
             ->line('We have successfully received your payment of ৳' . $this->order->total_amount . '.')
-            ->action('View Order', url('/orders/' . $this->order->order_number))
+            ->line('Your order is now processing.')
+            ->action('View Orders', rtrim(config('app.frontend_url'), '/').'/orders')
             ->line('Thank you for shopping with us!');
     }
 

@@ -5,8 +5,10 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\User;
+use App\Notifications\OrderStatusChangedNotification;
 use App\Notifications\PaymentSuccessfulNotification;
 use App\Notifications\StorefrontNotification;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Laravel\Sanctum\Sanctum;
@@ -198,6 +200,7 @@ it('notifies the customer and admins when an order is placed and the customer wh
         ->assertOk();
 
     Notification::assertSentTo($customer, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'order.status_changed');
+    Notification::assertSentTo($customer, OrderStatusChangedNotification::class);
 });
 
 it('lists a user’s notifications and allows only that user to mark them as read', function () {
@@ -229,6 +232,7 @@ it('lists a user’s notifications and allows only that user to mark them as rea
 });
 
 it('restores reserved stock when an online payment fails', function () {
+    Notification::fake();
     $customer = User::factory()->create()->assignRole('customer');
     $product = Product::factory()->create(['stock' => 3]);
     Sanctum::actingAs($customer);
@@ -259,6 +263,8 @@ it('restores reserved stock when an online payment fails', function () {
     expect($product->fresh()->stock)->toBe(3)
         ->and($order->fresh()->stock_reserved)->toBeFalse()
         ->and($order->fresh()->status)->toBe('failed');
+
+    Notification::assertSentTo($customer, OrderStatusChangedNotification::class);
 });
 
 it('marks a validated SSLCommerz payment paid and redirects to the order result', function () {
@@ -305,6 +311,7 @@ it('marks a validated SSLCommerz payment paid and redirects to the order result'
         ->toBe('paid');
 
     Notification::assertSentTo($customer, PaymentSuccessfulNotification::class);
+    expect(new PaymentSuccessfulNotification($order))->not->toBeInstanceOf(ShouldQueue::class);
     Notification::assertSentTo($admin, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'payment.succeeded');
     Notification::assertSentTo($customer, StorefrontNotification::class, fn ($notification) => $notification->eventType === 'order.status_changed');
 });

@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Question;
 use App\Models\User;
 use App\Notifications\EmailVerificationCodeNotification;
+use App\Notifications\OrderStatusChangedNotification;
 use App\Notifications\StorefrontNotification;
 use App\Services\EmailVerificationCodeService;
 use App\Services\ImageService;
@@ -18,9 +19,11 @@ use Illuminate\Auth\Events\Verified;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class AdminController extends Controller
 {
@@ -164,7 +167,7 @@ class AdminController extends Controller
     {
         $validated = $this->validateOrder($request, true);
 
-        $updatedOrder = DB::transaction(function () use ($validated, $order, $inventory) {
+        [$updatedOrder, $statusChanged] = DB::transaction(function () use ($validated, $order, $inventory) {
             $order = Order::query()->lockForUpdate()->findOrFail($order->id);
             $inventory->release($order);
             $previousStatus = $order->status;
@@ -195,8 +198,22 @@ class AdminController extends Controller
                 ));
             }
 
-            return $order->load(['user:id,name,email', 'items.product:id,name,image_path', 'payments', 'latestPayment']);
+            return [
+                $order->load(['user:id,name,email', 'items.product:id,name,image_path', 'payments', 'latestPayment']),
+                $previousStatus !== $order->status,
+            ];
         });
+
+        if ($statusChanged) {
+            try {
+                $updatedOrder->user?->notify(new OrderStatusChangedNotification($updatedOrder));
+            } catch (Throwable $e) {
+                Log::error('Order status email failed', [
+                    'order_id' => $updatedOrder->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
 
         return response()->json($this->orderData($updatedOrder));
     }

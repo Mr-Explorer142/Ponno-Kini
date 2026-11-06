@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Question;
 use App\Models\User;
 use App\Notifications\EmailVerificationCodeNotification;
+use App\Notifications\OrderStatusChangedNotification;
 use App\Services\ImageService;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Support\Facades\Hash;
@@ -376,6 +377,7 @@ it('allows admins to create orders using catalog prices and pending payment', fu
 });
 
 it('allows admins to edit order details without changing payment records or payment status', function () {
+    Notification::fake();
     $admin = User::factory()->create()->assignRole('admin');
     $originalCustomer = User::factory()->create()->assignRole('customer');
     $newCustomer = User::factory()->create()->assignRole('customer');
@@ -422,6 +424,8 @@ it('allows admins to edit order details without changing payment records or paym
         ->assertJsonPath('total_amount', 1670)
         ->assertJsonPath('items.0.unit_price', 800)
         ->assertJsonPath('items.0.subtotal', 1600);
+
+    Notification::assertSentTo($newCustomer, OrderStatusChangedNotification::class);
 
     $order->refresh();
     expect($order->user_id)->toBe($newCustomer->id)
