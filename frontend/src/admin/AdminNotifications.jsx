@@ -17,7 +17,7 @@ export default function AdminNotifications() {
     const [error, setError] = useState("");
     const [unreadCount, setUnreadCount] = useState(0);
     const [soundEnabled, setSoundEnabled] = useState(
-        () => localStorage.getItem("ponno-kini-notification-sound") === "on",
+        () => localStorage.getItem("ponno-kini-notification-sound") !== "off",
     );
 
     const loadNotifications = useCallback(async (signal) => {
@@ -87,14 +87,14 @@ export default function AdminNotifications() {
         }
     };
 
-    const toggleSound = () => {
+    const toggleSound = async () => {
         if (soundEnabled) {
             localStorage.setItem("ponno-kini-notification-sound", "off");
             setSoundEnabled(false);
             return;
         }
 
-        if (!playNotificationSound()) {
+        if (!(await playNotificationSound())) {
             setError("Notification sound is unavailable in this browser.");
             return;
         }

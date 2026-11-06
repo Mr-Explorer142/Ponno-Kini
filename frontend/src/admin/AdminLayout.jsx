@@ -64,9 +64,9 @@ export default function AdminLayout() {
                         hasNewUnread &&
                         localStorage.getItem(
                             "ponno-kini-notification-sound",
-                        ) === "on"
+                        ) !== "off"
                     ) {
-                        playNotificationSound();
+                        void playNotificationSound();
                     }
 
                     notifications.forEach((notification) =>

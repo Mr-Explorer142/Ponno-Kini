@@ -1,9 +1,36 @@
-export function playNotificationSound() {
-    if (typeof window.AudioContext === "undefined") return false;
+let audioContext;
 
-    const context = new window.AudioContext();
-    if (context.state === "suspended") void context.resume();
+async function getReadyAudioContext() {
+    if (typeof window.AudioContext === "undefined") return null;
 
+    try {
+        audioContext ??= new window.AudioContext();
+        if (audioContext.state !== "running") {
+            await audioContext.resume();
+        }
+        return audioContext.state === "running" ? audioContext : null;
+    } catch {
+        return null;
+    }
+}
+
+const unlockOnInteraction = () => {
+    void getReadyAudioContext().then((context) => {
+        if (context) {
+            window.removeEventListener("pointerdown", unlockOnInteraction);
+            window.removeEventListener("keydown", unlockOnInteraction);
+        }
+    });
+};
+
+if (typeof window !== "undefined") {
+    window.addEventListener("pointerdown", unlockOnInteraction);
+    window.addEventListener("keydown", unlockOnInteraction);
+}
+
+export async function playNotificationSound() {
+    const context = await getReadyAudioContext();
+    if (!context) return false;
     const oscillator = context.createOscillator();
     const volume = context.createGain();
     oscillator.type = "sine";
@@ -14,6 +41,9 @@ export function playNotificationSound() {
     volume.connect(context.destination);
     oscillator.start();
     oscillator.stop(context.currentTime + 0.18);
-    oscillator.onended = () => void context.close();
+    oscillator.onended = () => {
+        oscillator.disconnect();
+        volume.disconnect();
+    };
     return true;
 }
