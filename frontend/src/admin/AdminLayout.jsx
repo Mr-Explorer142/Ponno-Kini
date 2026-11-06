@@ -28,7 +28,7 @@ const navigation = [
     { to: "/admin/orders", label: "Orders", icon: ShoppingCart },
     { to: "/admin/payments", label: "Payments", icon: CreditCard },
     { to: "/admin/questions", label: "Questions", icon: MessageCircleQuestion },
-    { to: "/admin/users", label: "Customers", icon: Users },
+    { to: "/admin/users", label: "Users", icon: Users },
 ];
 const activityNavigation = [
     { to: "/admin/notifications", label: "Notifications", icon: Bell },
