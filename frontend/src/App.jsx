@@ -9,6 +9,7 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Profile from "./pages/Profile";
 import Orders from "./pages/Orders";
+import OrderTracking from "./pages/OrderTracking";
 import VerifyEmail from "./pages/VerifyEmail";
 import Home from "./pages/Home";
 import ProductCatalog from "./pages/ProductCatalog";
@@ -165,6 +166,10 @@ function App() {
                         <Route path="/verify-email" element={<VerifyEmail />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/orders" element={<Orders />} />
+                        <Route
+                            path="/orders/:orderId/track"
+                            element={<OrderTracking />}
+                        />
                         <Route path="/order-result" element={<OrderResult />} />
                     </Route>
 

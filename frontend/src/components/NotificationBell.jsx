@@ -233,40 +233,60 @@ function NotificationBellContent() {
                                 {t("You have no notifications.")}
                             </p>
                         ) : (
-                            notifications.map((notification) => (
-                                <Link
-                                    key={notification.id}
-                                    to={notification.data.url || "/orders"}
-                                    className={`block border-b border-border px-4 py-3 text-sm transition-colors last:border-b-0 hover:bg-muted ${
-                                        notification.read_at ? "" : "bg-primary/5"
-                                    }`}
-                                    onClick={() => {
-                                        setOpen(false);
-                                        if (!notification.read_at) {
-                                            void markAsRead(notification.id);
-                                        }
-                                    }}
-                                >
-                                    <span className="flex items-start gap-2">
-                                        {!notification.read_at && (
-                                            <span
-                                                aria-label={t("Unread")}
-                                                className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
-                                            />
-                                        )}
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block">
-                                                {notification.data.message}
+                            notifications.map((notification) => {
+                                const markRead = () => {
+                                    if (!notification.read_at) {
+                                        void markAsRead(notification.id);
+                                    }
+                                };
+
+                                return (
+                                    <article
+                                        key={notification.id}
+                                        className={`border-b border-border px-4 py-3 text-sm last:border-b-0 ${
+                                            notification.read_at ? "" : "bg-primary/5"
+                                        }`}
+                                    >
+                                        <Link
+                                            to={notification.data.url || "/orders"}
+                                            className="flex items-start gap-2 hover:text-primary"
+                                            onClick={() => {
+                                                setOpen(false);
+                                                markRead();
+                                            }}
+                                        >
+                                            {!notification.read_at && (
+                                                <span
+                                                    aria-label={t("Unread")}
+                                                    className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
+                                                />
+                                            )}
+                                            <span className="min-w-0 flex-1">
+                                                <span className="block">
+                                                    {notification.data.message}
+                                                </span>
+                                                <time className="mt-1 block text-xs text-muted-foreground">
+                                                    {new Date(
+                                                        notification.created_at,
+                                                    ).toLocaleString()}
+                                                </time>
                                             </span>
-                                            <time className="mt-1 block text-xs text-muted-foreground">
-                                                {new Date(
-                                                    notification.created_at,
-                                                ).toLocaleString()}
-                                            </time>
-                                        </span>
-                                    </span>
-                                </Link>
-                            ))
+                                        </Link>
+                                        {notification.data.order_id && (
+                                            <Link
+                                                to={`/orders/${notification.data.order_id}/track`}
+                                                className="mt-2 inline-flex font-medium text-primary hover:underline"
+                                                onClick={() => {
+                                                    setOpen(false);
+                                                    markRead();
+                                                }}
+                                            >
+                                                {t("Track your order")}
+                                            </Link>
+                                        )}
+                                    </article>
+                                );
+                            })
                         )}
                     </div>
                 </section>

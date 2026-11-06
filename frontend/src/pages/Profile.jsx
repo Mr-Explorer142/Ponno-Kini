@@ -7,6 +7,7 @@ import {
     LoaderCircle,
     LogOut,
     Mail,
+    Package,
     ShieldCheck,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -111,12 +112,39 @@ export default function Profile() {
     const [accountNotice, setAccountNotice] = useState(null);
     const [avatarUploading, setAvatarUploading] = useState(false);
     const [avatarNotice, setAvatarNotice] = useState(null);
+    const [recentOrders, setRecentOrders] = useState([]);
+    const [ordersLoading, setOrdersLoading] = useState(true);
+    const [ordersError, setOrdersError] = useState("");
     const avatarInputRef = useRef(null);
 
     // Refresh from /me so the profile is never stale
     useEffect(() => {
         fetchUser();
     }, [fetchUser]);
+
+    useEffect(() => {
+        let active = true;
+
+        api.get("/orders", { params: { page: 1 } })
+            .then((response) => {
+                if (active) setRecentOrders(response.data.data ?? []);
+            })
+            .catch((requestError) => {
+                if (active) {
+                    setOrdersError(
+                        requestError.response?.data?.message ||
+                            t("Your orders could not be loaded. Please try again."),
+                    );
+                }
+            })
+            .finally(() => {
+                if (active) setOrdersLoading(false);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, []);
 
     const handleLogout = async () => {
         await logout();
@@ -521,6 +549,80 @@ export default function Profile() {
                 <InfoRow icon={CalendarDays} label={t("Member since")}>
                     {formatDate(user.created_at)}
                 </InfoRow>
+
+                {!roles.includes("admin") && (
+                    <section className="space-y-4 border-t border-border py-5">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <h2 className="text-lg font-semibold">
+                                    {t("Your recent orders")}
+                                </h2>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    {t("Check the latest status of your orders.")}
+                                </p>
+                            </div>
+                            <Button asChild variant="outline" size="sm">
+                                <Link to="/orders">{t("View all orders")}</Link>
+                            </Button>
+                        </div>
+
+                        {ordersError && (
+                            <p
+                                role="alert"
+                                className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+                            >
+                                {t(ordersError)}
+                            </p>
+                        )}
+                        {ordersLoading ? (
+                            <p className="text-sm text-muted-foreground" role="status">
+                                {t("Loading your orders...")}
+                            </p>
+                        ) : recentOrders.length ? (
+                            <div className="space-y-3">
+                                {recentOrders.slice(0, 3).map((order) => (
+                                    <article
+                                        key={order.id}
+                                        className="flex flex-col gap-3 rounded-lg border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="flex min-w-0 items-start gap-3">
+                                            <Package
+                                                className="mt-0.5 size-5 shrink-0 text-primary"
+                                                aria-hidden="true"
+                                            />
+                                            <div className="min-w-0">
+                                                <p className="break-all text-sm font-medium">
+                                                    {t("Order :number", {
+                                                        number: order.order_number,
+                                                    })}
+                                                </p>
+                                                <p className="mt-1 text-sm text-muted-foreground">
+                                                    {t("Order status:")}{" "}
+                                                    {t(
+                                                        order.status
+                                                            .replaceAll("_", " ")
+                                                            .replace(/\b\w/g, (letter) =>
+                                                                letter.toUpperCase(),
+                                                            ),
+                                                    )}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button asChild size="sm" className="w-full sm:w-auto">
+                                            <Link to={`/orders/${order.id}/track`}>
+                                                {t("Track your order")}
+                                            </Link>
+                                        </Button>
+                                    </article>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                                {t("You have no orders yet.")}
+                            </p>
+                        )}
+                    </section>
+                )}
 
                 <section className="space-y-6 border-t border-border pt-6">
                     <div>
